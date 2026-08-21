@@ -22,6 +22,14 @@
 - [x] Introduce a continuous warm-white and emerald visual environment with subtle grid, texture, rules, and dimensional transitions between sections.
 - [x] Refine the report and analytical surfaces to match the new SEO intelligence instrument art direction while preserving all core report content and export behavior.
 - [x] Verify the redesigned desktop and mobile experience for hierarchy, accessibility, animation restraint, and required copy fidelity.
-- [ ] Save a post-redesign checkpoint and present the revised project version.
+- [x] Save a post-redesign checkpoint and present the revised project version.
 - [x] Restore the required verbatim SEOSignal copy in the redesigned hero and report while preserving the new analytical visual direction.
 - [x] Re-run desktop and mobile verification after restoring the required copy, hierarchy, accessibility, and motion behavior.
+- [x] Refine the system-font typography, type scale, weights, line-height, and letter spacing to align with the stated San Francisco system-font direction.
+- [x] Strengthen the hero’s integrated SEO signal visualization and asymmetric information relationship while removing non-communicative visual noise.
+- [x] Refine the qualification console’s editorial hierarchy and clarify the commercial and business-intent input groups.
+- [x] Replace the hardcoded budget bands with separate budget amount and compact multi-currency selector inputs using locale-aware display formatting.
+- [x] Extend the lead model, AI prompt, local assessment framework, report, and PDF export to preserve the exact selected budget currency without silent conversion.
+- [x] Refine the intelligence report opening, score instrument, and editorial data hierarchy while retaining the thin SVG visualization.
+- [x] Revalidate unit coverage, TypeScript, desktop/mobile layouts, required labels, currency formatting, accessibility, and motion behavior.
+- [ ] Save and present a final-refinement checkpoint.

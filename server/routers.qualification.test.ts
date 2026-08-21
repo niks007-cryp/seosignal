@@ -16,7 +16,8 @@ describe("qualification.analyze", () => {
       company: "",
       website: "not-a-url",
       serviceRequired: "SEO strategy",
-      monthlyBudget: "$2,000–$4,000",
+      budgetAmount: 5000,
+      budgetCurrency: "USD",
       businessGoal: "Qualified leads",
     })).rejects.toMatchObject({ code: "BAD_REQUEST" });
   });

@@ -1,5 +1,5 @@
 import { invokeLLM, listLLMModels } from "./_core/llm";
-import type { LeadInput, QualificationReport } from "../shared/qualification";
+import { formatBudgetAmount, type LeadInput, type QualificationReport } from "../shared/qualification";
 
 const capabilityProfile = `
 SEOSignal evaluates inbound opportunities for a specialist B2B SEO agency. Strong fits are companies seeking strategic, technical, content, enterprise SEO or an SEO audit; have a commercial organic-growth objective; communicate a realistic ongoing budget; can work in a defined market; and show evidence of urgency or provider evaluation. This is decision support, not a prediction of conversion probability. Never invent facts not present in the lead information.
@@ -72,19 +72,14 @@ const schema = {
   additionalProperties: false,
 } as const;
 
-function budgetScore(monthlyBudget: LeadInput["monthlyBudget"]) {
-  if (monthlyBudget === "$4,000–$8,000") return 24;
-  if (monthlyBudget === "$8,000+") return 25;
-  if (monthlyBudget === "$2,000–$4,000") return 17;
-  return 7;
-}
-
 export function evaluateLeadLocally(lead: LeadInput): QualificationReport {
   const hasContext = Boolean(lead.targetMarket) && Boolean(lead.timeline) && Boolean(lead.seoChallenge);
   const highIntent = /provider|agency|growth|pipeline|lead|revenue|audit|fix/i.test(`${lead.businessGoal} ${lead.seoChallenge ?? ""}`);
-  const score = Math.max(25, Math.min(94, 33 + budgetScore(lead.monthlyBudget) + (hasContext ? 17 : 4) + (highIntent ? 14 : 7)));
+  const declaredBudget = lead.budgetAmount > 0;
+  const score = Math.max(25, Math.min(94, 35 + (declaredBudget ? 7 : 0) + (lead.targetMarket ? 8 : 2) + (hasContext ? 16 : 4) + (highIntent ? 14 : 7) + (lead.serviceRequired === "Enterprise SEO" ? 12 : 8)));
   const qualification = score >= 76 ? "HIGH" : score >= 52 ? "MEDIUM" : "LOW";
   const contextText = hasContext ? "The brief includes market, timeline and current SEO context." : "Several commercial and operational details remain unconfirmed.";
+  const monthlyBudget = `${formatBudgetAmount(lead.budgetAmount, lead.budgetCurrency)} / month`;
   const missingInfo = [
     !lead.seoChallenge && { title: "Current organic performance", body: "We do not yet know monthly organic traffic, conversion quality or existing channel contribution." },
     !lead.targetMarket && { title: "Target market", body: "The target geography or priority customer market has not been provided." },
@@ -99,14 +94,14 @@ export function evaluateLeadLocally(lead: LeadInput): QualificationReport {
     confidence: { label: hasContext ? "High" : "Moderate", rationale: hasContext ? "Based on the supplied commercial, market and delivery context." : "Based on the essential lead details; deeper discovery would improve the assessment.", evaluatedSignals: hasContext ? 8 : 5 },
     executiveSummary: [
       { title: "Service alignment", body: `The requested ${lead.serviceRequired.toLowerCase()} engagement maps to the defined service profile.` },
-      { title: "Commercial context", body: `The stated budget band is ${lead.monthlyBudget}.` },
+      { title: "Commercial context", body: `A monthly budget of ${monthlyBudget} has been declared. Currency-normalized scope requires discovery validation.` },
       { title: "Business objective", body: `The lead is focused on ${lead.businessGoal.toLowerCase()}.` },
       { title: "Information quality", body: contextText },
     ],
     signals: [
       { signal: "Service Fit", assessment: "Strong", evidence: lead.serviceRequired },
       { signal: "ICP / Company", assessment: "Moderate", evidence: "Company profile requires discovery validation." },
-      { signal: "Commercial Scope", assessment: lead.monthlyBudget === "Under $2,000" ? "Weak" : "Strong", evidence: lead.monthlyBudget },
+      { signal: "Commercial Scope", assessment: declaredBudget ? "Moderate" : "Unknown", evidence: declaredBudget ? monthlyBudget : "Not provided" },
       { signal: "Market", assessment: lead.targetMarket ? "Strong" : "Unknown", evidence: lead.targetMarket || "Not provided" },
       { signal: "Business Goal", assessment: "Strong", evidence: lead.businessGoal },
       { signal: "SEO Use Case", assessment: lead.seoChallenge ? "Moderate" : "Unknown", evidence: lead.seoChallenge || "Not provided" },
@@ -135,7 +130,7 @@ export async function qualifyLead(lead: LeadInput): Promise<QualificationReport>
       model,
       messages: [
         { role: "system", content: `You are a precise B2B SEO qualification analyst. ${capabilityProfile} Respond only with the required JSON. Return exactly 10 qualification signals covering service fit, ICP/company fit, commercial scope, market, business goal, SEO use-case fit, timeline, buying intent, goal clarity and information completeness. Use concise, professional analyst language. Any missing input must remain unknown; do not guess.` },
-        { role: "user", content: `Evaluate this lead:\n${JSON.stringify(lead, null, 2)}` },
+        { role: "user", content: `Evaluate this lead. Monthly budget: ${formatBudgetAmount(lead.budgetAmount, lead.budgetCurrency)} ${lead.budgetCurrency} per month. Do not convert currencies or infer an exchange rate; treat currency as structured context.\n${JSON.stringify(lead, null, 2)}` },
       ],
       response_format: { type: "json_schema", json_schema: { name: "seo_lead_qualification", strict: true, schema } },
     });
