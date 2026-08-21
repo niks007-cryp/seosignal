@@ -41,13 +41,13 @@
 - [x] Add lightweight server-side homepage inspection for the submitted website with timeout, safe failure handling, and AVAILABLE/UNAVAILABLE status.
 - [x] Create the required leads and qualifications persistence model with separate budget amount and budget currency fields.
 - [x] Ensure selected currency is preserved in UI, AI reasoning context, database records, report rendering, and PDF export without silent conversion.
-- [ ] Provide .env.example with required Gemini and Supabase environment variable names and no secret values.
+- [x] Provide .env.example with required Gemini and Supabase environment variable names and no secret values.
 - [x] Add integration-oriented tests for qualification scoring, hard disqualifiers, website inspection fallback, structured AI validation, and persistence boundaries.
 - [x] Audit the application for client-side secret exposure and visible Manus branding before release.
 - [x] Remove or document remaining shipped client-side Manus-branded assets, components, and comments so the public release contains no user-facing Manus branding.
 - [x] Re-run the client secret and branding audit after cleanup and record a clean production result.
 - [x] Commit the verified project to a private GitHub repository.
-- [ ] Prepare production deployment guidance or deployment handoff based on the available hosting path and connector constraints.
+- [x] Prepare production deployment guidance or deployment handoff based on the available hosting path and connector constraints.
 - [x] Save and present the fully integrated production-readiness checkpoint.
 - [x] Diagnose and fix the live Vercel qualification failure observed after production secrets were configured, then verify a live report renders successfully.
 - [x] Re-run the production browser qualification flow after the Vercel runtime fix and confirm the report UI renders end to end.
@@ -62,3 +62,4 @@
 - [x] Configure the bundled Vercel API function with a production-safe maximum duration and re-verify the live browser qualification flow.
 - [x] Map the user-facing limited-confidence label to a valid stored confidence value and add regression coverage for the database constraint.
 - [x] Ensure a failed qualification insert cleans up its just-created temporary lead and cover the rollback boundary.
+- [x] Refresh the Vercel deployment handoff documentation to reflect the verified production adapter, live URL, and duration configuration.
