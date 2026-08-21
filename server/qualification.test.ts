@@ -17,6 +17,7 @@ describe("SEOSignal qualification framework", () => {
     expect(report.qualification).toBe("HIGH");
     expect(report.score).toBeGreaterThanOrEqual(76);
     expect(report.confidence.label).toBe("High");
+    expect(report.signals).toHaveLength(10);
     expect(report.missingInfo).toHaveLength(0);
   });
 

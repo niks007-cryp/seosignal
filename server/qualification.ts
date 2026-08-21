@@ -33,6 +33,8 @@ const schema = {
     },
     signals: {
       type: "array",
+      minItems: 10,
+      maxItems: 10,
       items: {
         type: "object",
         properties: {
@@ -103,12 +105,15 @@ export function evaluateLeadLocally(lead: LeadInput): QualificationReport {
     ],
     signals: [
       { signal: "Service Fit", assessment: "Strong", evidence: lead.serviceRequired },
+      { signal: "ICP / Company", assessment: "Moderate", evidence: "Company profile requires discovery validation." },
       { signal: "Commercial Scope", assessment: lead.monthlyBudget === "Under $2,000" ? "Weak" : "Strong", evidence: lead.monthlyBudget },
-      { signal: "Business Goal", assessment: "Strong", evidence: lead.businessGoal },
       { signal: "Market", assessment: lead.targetMarket ? "Strong" : "Unknown", evidence: lead.targetMarket || "Not provided" },
+      { signal: "Business Goal", assessment: "Strong", evidence: lead.businessGoal },
+      { signal: "SEO Use Case", assessment: lead.seoChallenge ? "Moderate" : "Unknown", evidence: lead.seoChallenge || "Not provided" },
       { signal: "Timeline", assessment: lead.timeline ? "Moderate" : "Unknown", evidence: lead.timeline || "Not provided" },
-      { signal: "SEO Context", assessment: lead.seoChallenge ? "Moderate" : "Unknown", evidence: lead.seoChallenge || "Not provided" },
       { signal: "Intent", assessment: highIntent ? "Strong" : "Moderate", evidence: highIntent ? "Goal and context indicate active evaluation." : "Intent is implied by the requested engagement." },
+      { signal: "Goal Clarity", assessment: "Strong", evidence: lead.businessGoal },
+      { signal: "Information Completeness", assessment: hasContext ? "Strong" : "Moderate", evidence: hasContext ? "Commercial and operational context supplied." : "Essential lead details supplied; research context remains limited." },
     ],
     missingInfo,
     recommendation: {
@@ -129,7 +134,7 @@ export async function qualifyLead(lead: LeadInput): Promise<QualificationReport>
     const response = await invokeLLM({
       model,
       messages: [
-        { role: "system", content: `You are a precise B2B SEO qualification analyst. ${capabilityProfile} Respond only with the required JSON. Use concise, professional analyst language. Any missing input must remain unknown; do not guess.` },
+        { role: "system", content: `You are a precise B2B SEO qualification analyst. ${capabilityProfile} Respond only with the required JSON. Return exactly 10 qualification signals covering service fit, ICP/company fit, commercial scope, market, business goal, SEO use-case fit, timeline, buying intent, goal clarity and information completeness. Use concise, professional analyst language. Any missing input must remain unknown; do not guess.` },
         { role: "user", content: `Evaluate this lead:\n${JSON.stringify(lead, null, 2)}` },
       ],
       response_format: { type: "json_schema", json_schema: { name: "seo_lead_qualification", strict: true, schema } },
