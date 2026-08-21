@@ -60,3 +60,5 @@
 - [x] Add bounded retry handling for transient Gemini 429/5xx responses and verify the live structured-output integration recovers or fails safely.
 - [ ] Adapt the Vercel production output so the public root serves the SEOSignal client application and the API runs as a compatible serverless function.
 - [ ] Configure the bundled Vercel API function with a production-safe maximum duration and re-verify the live browser qualification flow.
+- [ ] Map the user-facing limited-confidence label to a valid stored confidence value and add regression coverage for the database constraint.
+- [ ] Ensure a failed qualification insert cleans up its just-created temporary lead and cover the rollback boundary.
