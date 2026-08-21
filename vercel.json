@@ -1,5 +1,5 @@
 {
-  "buildCommand": "vite build",
+  "buildCommand": "pnpm build:vercel",
   "outputDirectory": "dist/public",
   "rewrites": [
     {
