@@ -121,47 +121,21 @@ function FloatingNavigation() {
   );
 }
 
-function ToolImageValidation() {
-  return (
-    <section className="validation-section print-hidden" aria-labelledby="validation-title">
-      <div className="container">
-        <div className="validation-frame">
-          <div className="validation-intro">
-            <p className="section-index">02</p>
-            <p className="section-kicker">Real-world validation</p>
-            <h2 id="validation-title">ToolImage — browser-based image utilities</h2>
-            <p>ToolImage is a real SaaS product used as a validation example for SEOSignal. Its image-compression, resizing and conversion use cases demonstrate how a product can map directly to specific search intents and SEO opportunities.</p>
-            <a className="validation-link" href="https://toolimage.online" target="_blank" rel="noreferrer">Visit ToolImage <ExternalLink size={15} /></a>
-          </div>
-          <div className="validation-signal" aria-label="ToolImage search-intent relationship">
-            <p className="validation-signal-label">Problem → intent → utility</p>
-            <div className="validation-flow">
-              <div><span>01</span><strong>Image constraint</strong><p>A file needs a smaller size, exact dimensions, or a different format.</p></div>
-              <div><span>02</span><strong>Specific search intent</strong><p>Compress an image, resize to dimensions, convert JPG to PNG, or reduce image size.</p></div>
-              <div><span>03</span><strong>Relevant utility</strong><p>ToolImage offers local image compression, resizing, and conversion for JPG, PNG, and WebP.</p></div>
-            </div>
-            <div className="validation-facts" aria-label="Verified ToolImage capabilities"><span>Local browser processing</span><span>JPG · PNG · WebP</span><span>Compress · Resize · Convert</span></div>
-          </div>
-          <p className="validation-disclaimer">Independent validation example only — not a SEOSignal customer, partner, or endorsement. No budget, timeline, traffic, ranking, conversion, or customer claims are represented.</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function PortfolioContext() {
   return (
     <section className="portfolio-section print-hidden" aria-labelledby="portfolio-title">
       <div className="container portfolio-grid">
         <div>
-          <p className="portfolio-eyebrow">Independent builder context</p>
-          <h2 id="portfolio-title">Built as part of my SaaS portfolio</h2>
+          <p className="portfolio-eyebrow">Built alongside this</p>
+          <h2 id="portfolio-title">ToolImage</h2>
         </div>
         <div className="portfolio-copy">
-          <p>Alongside this assessment, I have been building ToolImage — a lightweight SaaS product focused on browser-based image utilities. It is an independent product experiment exploring product development, SEO-led acquisition and SaaS monetization.</p>
-          <p className="portfolio-disciplines">Product development · UX · SEO-led acquisition · SaaS experimentation · Monetization · Shipping a live product</p>
-          <a className="portfolio-link" href="https://toolimage.online" target="_blank" rel="noreferrer"><span><strong>ToolImage</strong><small>toolimage.online</small></span><em>View project →</em></a>
-          <p className="portfolio-feedback">If relevant, I&apos;d also be interested in your feedback on the product and the approach.</p>
+          <p className="portfolio-product-line">A SaaS product I built and shipped independently.</p>
+          <p>ToolImage is a browser-based image utility SaaS focused on practical image workflows such as compression, resizing and format conversion.</p>
+          <p className="portfolio-disciplines">Product → UX → Engineering → SEO → Monetization → Deployment</p>
+          <p>The goal was not simply to build a collection of image tools, but to explore how a focused utility product can be designed, shipped and grown through organic search and SaaS fundamentals.</p>
+          <a className="portfolio-link" href="https://toolimage.online" target="_blank" rel="noreferrer">View ToolImage →</a>
+          <p className="portfolio-feedback">Given your experience building SaaS products, I&apos;d genuinely value any feedback you may have on the product or the approach.</p>
         </div>
       </div>
     </section>
@@ -204,7 +178,7 @@ function Report({ lead, report }: { lead: LeadInput; report: QualificationReport
           <div className="research-list">{report.missingInfo.length ? report.missingInfo.slice(0, 4).map((item, index) => <div key={`${item.title}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><h4>{item.title}</h4><p>{item.body}</p></div>) : <div><span>01</span><h4>Further validation</h4><p>The supplied brief is complete enough for the prototype assessment. Discovery remains appropriate before committing scope.</p></div>}</div>
         </section>
         <section className="next-move-section"><div><p className="section-index">05</p><p className="section-kicker">Recommended next move</p><h3>The next move</h3><h4>{report.recommendation.title}</h4><p>{report.recommendation.body}</p></div><ol>{report.recommendation.steps.slice(0, 3).map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span>{step}</li>)}</ol></section>
-        <section className="methodology-section section-rule" aria-labelledby="methodology-title"><div className="section-heading"><p className="section-index">06</p><div><p className="section-kicker">Framework</p><h3 id="methodology-title">About this assessment</h3></div></div><div><p>{report.methodology}</p><p>{report.assumptions}</p><p className="validation-note">ToolImage can be used as a public real-world SaaS validation example when a website URL is supplied. This prototype makes no customer, endorsement, or private-information claim.</p></div></section>
+        <section className="methodology-section section-rule" aria-labelledby="methodology-title"><div className="section-heading"><p className="section-index">06</p><div><p className="section-kicker">Framework</p><h3 id="methodology-title">About this assessment</h3></div></div><div><p>{report.methodology}</p><p>{report.assumptions}</p><p className="validation-note">Assessment conclusions use only the submitted lead, inspected public website evidence, configured framework, and AI interpretation. External portfolio projects are not assessment inputs.</p></div></section>
       </div>
     </article>
   );
@@ -310,7 +284,6 @@ export default function Home() {
           <div className="form-footer"><p>Assessment output is based only on supplied information and the stated qualification framework.</p><button className="primary-button" type="submit" disabled={analyze.isPending}>{analyze.isPending ? "Analyzing lead" : "Qualify Lead"}<ArrowDownRight size={17} /></button></div>
         </form>
       </div></div></div></section>
-      <ToolImageValidation />
       {analyze.isPending && <section className="analysis-section print-hidden" aria-live="polite" aria-label="Lead analysis in progress"><div className="container analysis-inner"><div><p className="section-index">Analysis in progress</p><h2>Analyzing lead</h2><p>Evaluating fit, intent, budget and business need.</p></div><div className="analysis-tracker">{analysisSteps.map((step, index) => <div className={index === 0 ? "analysis-step complete" : "analysis-step"} key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></div>)}</div></div></section>}
       {report && <section className="result-section"><div className="container result-meta print-hidden"><p><span className="live-dot" />Lead intelligence ready</p><button onClick={downloadReport} className="download-button" disabled={isExporting}><Download size={16} />{isExporting ? "Preparing PDF" : "Download report"}</button></div><div className="container"><Report lead={lead} report={report} /></div></section>}
       <PortfolioContext />

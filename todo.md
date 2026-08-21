@@ -104,3 +104,7 @@
 - [x] Review desktop and mobile hierarchy to confirm SEOSignal remains dominant and the portfolio note reads as professional builder context.
 - [x] Commit and push the verified portfolio-context update to the existing GitHub repository.
 - [x] Record explicit desktop and mobile visual-review evidence that the near-footer portfolio note remains secondary to the SEOSignal qualification experience and reads as builder context rather than promotion.
+- [x] Replace the ToolImage real-world validation and problem-to-intent treatment with a compact `BUILT ALONGSIDE THIS` independent SaaS-builder portfolio footnote.
+- [x] Preserve the supplied ToolImage builder copy, neutral `View ToolImage →` link, and professional feedback sentence without customer, case-study, traffic, ranking, conversion, pricing, testimonial, or sales claims.
+- [x] Audit and remove any visible `Made with Manus` production branding while retaining only required project functionality and platform-neutral presentation.
+- [x] Verify the revised portfolio footnote is subordinate to the assessment on desktop and mobile, then run tests, TypeScript, production build, and commit the update.
