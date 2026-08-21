@@ -170,6 +170,11 @@ export default defineConfig({
   },
   server: {
     host: true,
+    // The managed preview is reverse-proxied. Never allow a transformed HTML
+    // fallback to be cached and subsequently reused for a JavaScript module.
+    headers: {
+      "Cache-Control": "no-store, max-age=0, must-revalidate",
+    },
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",

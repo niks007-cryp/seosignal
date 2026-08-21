@@ -80,3 +80,10 @@
 - [x] Diagnose and eliminate the recurring /?from_webdev=1 Unexpected token '<' preview parse error, then verify the latest console is clean.
 - [x] Add a reproducible managed-preview safeguard that clears the stale Vite transform cache before development startup.
 - [x] Reload /?from_webdev=1 repeatedly after the safeguard and document a clean preview-console result.
+- [x] Trace the 19:42 post-safeguard Unexpected token '<' event to its exact stale module or response path.
+- [x] Strengthen the preview startup and module-delivery safeguard so a reported stale HTML-as-JavaScript response cannot recur after cache clearing.
+- [x] Stress-test the reported route after the strengthened safeguard and capture timestamp-filtered clean console evidence.
+- [x] Restrict the Express development SPA fallback to browser navigation requests so unresolved module requests return non-HTML errors instead of index markup.
+- [x] Record unresolved development module requests with their URL, Accept header, and response status so any future parse error has a concrete trace.
+- [x] Exercise the unresolved-module trace and document its correlation with the navigation-only fallback behavior.
+- [x] Restore the configured preview debug collector asset so its injected script is served as JavaScript rather than appearing as an unresolved module request.
