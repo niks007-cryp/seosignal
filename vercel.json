@@ -1,0 +1,10 @@
+{
+  "buildCommand": "vite build",
+  "outputDirectory": "dist/public",
+  "rewrites": [
+    {
+      "source": "/manus-storage/(.*)",
+      "destination": "/api/manus-storage/$1"
+    }
+  ]
+}

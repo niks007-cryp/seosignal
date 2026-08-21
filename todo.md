@@ -46,7 +46,7 @@
 - [x] Audit the application for client-side secret exposure and visible Manus branding before release.
 - [x] Remove or document remaining shipped client-side Manus-branded assets, components, and comments so the public release contains no user-facing Manus branding.
 - [x] Re-run the client secret and branding audit after cleanup and record a clean production result.
-- [ ] Commit the verified project to a private GitHub repository.
+- [x] Commit the verified project to a private GitHub repository.
 - [ ] Prepare production deployment guidance or deployment handoff based on the available hosting path and connector constraints.
 - [x] Save and present the fully integrated production-readiness checkpoint.
 - [x] Move the fundamental ICP mismatch rule and message into the maintainable qualification configuration.
@@ -55,3 +55,4 @@
 - [x] Add deterministic coverage proving configured ICP assumptions affect the transparent qualification result.
 - [x] Add deterministic end-to-end scoring tests for configured non-prospect evidence and configured target-profile evidence.
 - [x] Add bounded retry handling for transient Gemini 429/5xx responses and verify the live structured-output integration recovers or fails safely.
+- [ ] Adapt the Vercel production output so the public root serves the SEOSignal client application and the API runs as a compatible serverless function.
