@@ -49,7 +49,9 @@
 - [x] Commit the verified project to a private GitHub repository.
 - [ ] Prepare production deployment guidance or deployment handoff based on the available hosting path and connector constraints.
 - [x] Save and present the fully integrated production-readiness checkpoint.
-- [ ] Diagnose and fix the live Vercel qualification failure observed after production secrets were configured, then verify a live report renders successfully.
+- [x] Diagnose and fix the live Vercel qualification failure observed after production secrets were configured, then verify a live report renders successfully.
+- [ ] Re-run the production browser qualification flow after the Vercel runtime fix and confirm the report UI renders end to end.
+- [ ] Record final browser-rendered production validation results after the live report succeeds or surfaces a safe user-facing error.
 - [x] Move the fundamental ICP mismatch rule and message into the maintainable qualification configuration.
 - [x] Define explicit target-customer ICP assumptions in configuration and consume them in the transparent scoring layer.
 - [x] Use configured target-customer ICP assumptions in the server-side ICP factor evaluation and disqualification logic.
@@ -57,3 +59,4 @@
 - [x] Add deterministic end-to-end scoring tests for configured non-prospect evidence and configured target-profile evidence.
 - [x] Add bounded retry handling for transient Gemini 429/5xx responses and verify the live structured-output integration recovers or fails safely.
 - [ ] Adapt the Vercel production output so the public root serves the SEOSignal client application and the API runs as a compatible serverless function.
+- [ ] Configure the bundled Vercel API function with a production-safe maximum duration and re-verify the live browser qualification flow.
