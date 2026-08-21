@@ -91,3 +91,9 @@
 - [x] Create `docs/SEOSignal-Technical-Documentation.md` with code-verified technical and assessment documentation, clearly separating facts, prototype assumptions, and AI interpretations.
 - [x] Add a concise implementation-accurate SEOSignal overview to the README and commit the documentation-only update to GitHub.
 - [x] Commit and push the documentation-only audit, README update, and backlog record to GitHub, then save a restorable checkpoint.
+- [x] Create an external technical-review ZIP from commit `9aace19`, containing the implemented source and requested documentation without modifying application behavior.
+- [x] Verify the ZIP manifest, source revision, archive integrity, and exclusion of secrets, environment files, keys, tokens, credentials, dependencies, build outputs, and local logs.
+- [x] Verify ToolImage’s live public product facts and add a visually secondary real-world validation section without customer, partner, endorsement, traffic, ranking, budget, or conversion claims.
+- [x] Evaluate the optional ToolImage form example and deliberately omit it because the existing required commercial fields have defaults that could imply unverified prototype assumptions.
+- [x] Verify the ToolImage addition across responsive layouts, tests, TypeScript, and production build without changing qualification, Gemini, Supabase, or PDF logic.
+- [x] Commit and push the verified ToolImage validation-example integration to the existing GitHub repository.

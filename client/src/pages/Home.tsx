@@ -120,6 +120,34 @@ function FloatingNavigation() {
   );
 }
 
+function ToolImageValidation() {
+  return (
+    <section className="validation-section print-hidden" aria-labelledby="validation-title">
+      <div className="container">
+        <div className="validation-frame">
+          <div className="validation-intro">
+            <p className="section-index">02</p>
+            <p className="section-kicker">Real-world validation</p>
+            <h2 id="validation-title">ToolImage — browser-based image utilities</h2>
+            <p>ToolImage is a real SaaS product used as a validation example for SEOSignal. Its image-compression, resizing and conversion use cases demonstrate how a product can map directly to specific search intents and SEO opportunities.</p>
+            <a className="validation-link" href="https://toolimage.online" target="_blank" rel="noreferrer">Visit ToolImage <ExternalLink size={15} /></a>
+          </div>
+          <div className="validation-signal" aria-label="ToolImage search-intent relationship">
+            <p className="validation-signal-label">Problem → intent → utility</p>
+            <div className="validation-flow">
+              <div><span>01</span><strong>Image constraint</strong><p>A file needs a smaller size, exact dimensions, or a different format.</p></div>
+              <div><span>02</span><strong>Specific search intent</strong><p>Compress an image, resize to dimensions, convert JPG to PNG, or reduce image size.</p></div>
+              <div><span>03</span><strong>Relevant utility</strong><p>ToolImage offers local image compression, resizing, and conversion for JPG, PNG, and WebP.</p></div>
+            </div>
+            <div className="validation-facts" aria-label="Verified ToolImage capabilities"><span>Local browser processing</span><span>JPG · PNG · WebP</span><span>Compress · Resize · Convert</span></div>
+          </div>
+          <p className="validation-disclaimer">Independent validation example only — not a SEOSignal customer, partner, or endorsement. No budget, timeline, traffic, ranking, conversion, or customer claims are represented.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Report({ lead, report }: { lead: LeadInput; report: QualificationReport }) {
   const generated = useMemo(() => new Intl.DateTimeFormat("en", { month: "long", day: "numeric", year: "numeric" }).format(new Date()), []);
   const monthlyBudget = `${formatBudgetAmount(lead.budgetAmount, lead.budgetCurrency)} / month`;
@@ -262,6 +290,7 @@ export default function Home() {
           <div className="form-footer"><p>Assessment output is based only on supplied information and the stated qualification framework.</p><button className="primary-button" type="submit" disabled={analyze.isPending}>{analyze.isPending ? "Analyzing lead" : "Qualify Lead"}<ArrowDownRight size={17} /></button></div>
         </form>
       </div></div></div></section>
+      <ToolImageValidation />
       {analyze.isPending && <section className="analysis-section print-hidden" aria-live="polite" aria-label="Lead analysis in progress"><div className="container analysis-inner"><div><p className="section-index">Analysis in progress</p><h2>Analyzing lead</h2><p>Evaluating fit, intent, budget and business need.</p></div><div className="analysis-tracker">{analysisSteps.map((step, index) => <div className={index === 0 ? "analysis-step complete" : "analysis-step"} key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></div>)}</div></div></section>}
       {report && <section className="result-section"><div className="container result-meta print-hidden"><p><span className="live-dot" />Lead intelligence ready</p><button onClick={downloadReport} className="download-button" disabled={isExporting}><Download size={16} />{isExporting ? "Preparing PDF" : "Download report"}</button></div><div className="container"><Report lead={lead} report={report} /></div></section>}
       <footer className="footer print-hidden"><div className="container"><span className="brand"><span className="brand-mark" />SEOSignal</span><p>AI-assisted inbound SEO lead qualification.</p><a href="#top">Back to top <ArrowUpRight size={15} /></a></div></footer>
