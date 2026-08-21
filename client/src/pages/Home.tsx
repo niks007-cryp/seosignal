@@ -149,6 +149,25 @@ function ToolImageValidation() {
   );
 }
 
+function PortfolioContext() {
+  return (
+    <section className="portfolio-section print-hidden" aria-labelledby="portfolio-title">
+      <div className="container portfolio-grid">
+        <div>
+          <p className="portfolio-eyebrow">Independent builder context</p>
+          <h2 id="portfolio-title">Built as part of my SaaS portfolio</h2>
+        </div>
+        <div className="portfolio-copy">
+          <p>Alongside this assessment, I have been building ToolImage — a lightweight SaaS product focused on browser-based image utilities. It is an independent product experiment exploring product development, SEO-led acquisition and SaaS monetization.</p>
+          <p className="portfolio-disciplines">Product development · UX · SEO-led acquisition · SaaS experimentation · Monetization · Shipping a live product</p>
+          <a className="portfolio-link" href="https://toolimage.online" target="_blank" rel="noreferrer"><span><strong>ToolImage</strong><small>toolimage.online</small></span><em>View project →</em></a>
+          <p className="portfolio-feedback">If relevant, I&apos;d also be interested in your feedback on the product and the approach.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Report({ lead, report }: { lead: LeadInput; report: QualificationReport }) {
   const generated = useMemo(() => new Intl.DateTimeFormat("en", { month: "long", day: "numeric", year: "numeric" }).format(new Date()), []);
   const monthlyBudget = `${formatBudgetAmount(lead.budgetAmount, lead.budgetCurrency)} / month`;
@@ -294,6 +313,7 @@ export default function Home() {
       <ToolImageValidation />
       {analyze.isPending && <section className="analysis-section print-hidden" aria-live="polite" aria-label="Lead analysis in progress"><div className="container analysis-inner"><div><p className="section-index">Analysis in progress</p><h2>Analyzing lead</h2><p>Evaluating fit, intent, budget and business need.</p></div><div className="analysis-tracker">{analysisSteps.map((step, index) => <div className={index === 0 ? "analysis-step complete" : "analysis-step"} key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></div>)}</div></div></section>}
       {report && <section className="result-section"><div className="container result-meta print-hidden"><p><span className="live-dot" />Lead intelligence ready</p><button onClick={downloadReport} className="download-button" disabled={isExporting}><Download size={16} />{isExporting ? "Preparing PDF" : "Download report"}</button></div><div className="container"><Report lead={lead} report={report} /></div></section>}
+      <PortfolioContext />
       <footer className="footer print-hidden"><div className="container"><span className="brand"><span className="brand-mark" />SEOSignal</span><p>AI-assisted inbound SEO lead qualification.</p><a href="#top">Back to top <ArrowUpRight size={15} /></a></div></footer>
     </main>
   );

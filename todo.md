@@ -99,3 +99,8 @@
 - [x] Commit and push the verified ToolImage validation-example integration to the existing GitHub repository.
 - [x] Add an accessible `DialogTitle` to the mobile navigation sheet so Radix DialogContent has the required screen-reader label.
 - [x] Verify the titled mobile navigation sheet compiles without a new DialogContent warning, preserves the mobile UI, passes regression checks, and is committed to GitHub.
+- [x] Add a minimal near-footer SaaS portfolio-context note for the independent ToolImage project without presenting it as a customer, case study, partner, client, or product under evaluation.
+- [x] Preserve the supplied editorial copy, non-sales feedback request, and a single neutral external project link without product promotion, feature-card treatment, statistics, pricing, or CTA language.
+- [x] Review desktop and mobile hierarchy to confirm SEOSignal remains dominant and the portfolio note reads as professional builder context.
+- [x] Commit and push the verified portfolio-context update to the existing GitHub repository.
+- [x] Record explicit desktop and mobile visual-review evidence that the near-footer portfolio note remains secondary to the SEOSignal qualification experience and reads as builder context rather than promotion.
