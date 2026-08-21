@@ -49,6 +49,7 @@
 - [x] Commit the verified project to a private GitHub repository.
 - [ ] Prepare production deployment guidance or deployment handoff based on the available hosting path and connector constraints.
 - [x] Save and present the fully integrated production-readiness checkpoint.
+- [ ] Diagnose and fix the live Vercel qualification failure observed after production secrets were configured, then verify a live report renders successfully.
 - [x] Move the fundamental ICP mismatch rule and message into the maintainable qualification configuration.
 - [x] Define explicit target-customer ICP assumptions in configuration and consume them in the transparent scoring layer.
 - [x] Use configured target-customer ICP assumptions in the server-side ICP factor evaluation and disqualification logic.
