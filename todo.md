@@ -123,8 +123,8 @@
 - [x] Verify that the reported preview mutation failure is caused by Gemini returning HTTP 429 after its existing retry, while Supabase remains reachable.
 - [x] Improve bounded retry handling for Gemini 429 responses and expose an accurate, retry-oriented client message without claiming assessment completion.
 - [x] Add deterministic Gemini-429 regression coverage and document the external API quota requirement without exposing credentials.
-- [ ] Inspect the persistent Gemini 429 response for any provider-supplied retry, quota, or model-availability guidance without exposing the configured key.
-- [ ] Determine whether a supported configured-provider recovery is available; otherwise document the exact external quota/key action required without fabricating a qualification result.
-- [ ] Verify a restored preview qualification path only after the provider rate limit is cleared, or deliver an explicit external recovery handoff.
-- [ ] Commit and push the verified Gemini free-tier quota diagnosis and current reliability handling to GitHub, then confirm the automatic Vercel deployment reaches READY.
-- [ ] Deliver the deployed URL and exact Gemini free-tier quota recovery condition without claiming that a deployment removes the provider-side daily limit.
+- [x] Inspect the persistent Gemini 429 response for any provider-supplied retry, quota, or model-availability guidance without exposing the configured key.
+- [x] Determine whether a supported configured-provider recovery is available; otherwise document the exact external quota/key action required without fabricating a qualification result.
+- [x] Deliver an explicit external recovery handoff: retry after the provider quota window resets or configure a Gemini project/key with available request quota.
+- [x] Commit and push the verified Gemini free-tier quota diagnosis and current reliability handling to GitHub, then confirm the automatic Vercel deployment reaches READY.
+- [x] Deliver the deployed URL and exact Gemini free-tier quota recovery condition without claiming that a deployment removes the provider-side daily limit.
