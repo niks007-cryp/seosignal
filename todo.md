@@ -113,3 +113,7 @@
 - [x] Inspect the existing Vercel deployment status and prepare the production deployment and live-verification handoff without initiating publication.
 - [x] Document the non-blocking repository-template condition: no tracked `.env.example` file exists, while the configured Vercel production variables remain the deployment source of truth; no secret values were added to the repository.
 - [x] Perform a final manual browser spot-check of the visible production form submission and PDF download; browser automation did not emit the click request despite the public tRPC workflow succeeding.
+- [x] Audit the current qualification request path for safe parallelization opportunities and record any unavoidable latency sources without changing qualification logic, Gemini prompting, Supabase behavior, PDF generation, or secrets handling.
+- [x] Add a minimal, explicitly UI-only `Assessment in progress` indicator beneath the Analyze Lead CTA that advances smoothly toward, but never reaches, 100% before the real request completes.
+- [x] Ensure the loading indicator shows truthful current-request wording, finishes at 100% only after success, does not show a fake success state on errors, and respects reduced-motion preferences.
+- [x] Add deterministic coverage and verify the focused loading improvement in responsive preview layouts, TypeScript, lint availability, tests, and production build before committing; the project has no lint script and the prior live backend flow remains unchanged.

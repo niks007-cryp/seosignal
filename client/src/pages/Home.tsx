@@ -12,6 +12,7 @@ import {
   Plus,
 } from "lucide-react";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Progress } from "@/components/ui/progress";
 import { trpc } from "@/lib/trpc";
 import {
   CURRENCIES,
@@ -22,8 +23,9 @@ import {
   type QualificationSignal,
 } from "../../../shared/qualification";
 import { normalizeWebsite } from "../../../shared/website";
+import { assessmentProgressAt } from "../../../shared/assessmentProgress";
 
-const analysisSteps = ["Reading the lead", "Website", "Requirement", "Fit", "Intent"];
+const analysisSequence = "Reading the lead → Website → Requirement → Fit → Intent";
 
 const initialLead: LeadInput = {
   company: "",
@@ -192,6 +194,8 @@ export default function Home() {
   const [isExporting, setIsExporting] = useState(false);
   const [budgetFocused, setBudgetFocused] = useState(false);
   const [websiteTouched, setWebsiteTouched] = useState(false);
+  const [assessmentProgress, setAssessmentProgress] = useState(0);
+  const [assessmentReady, setAssessmentReady] = useState(false);
   const analyze = trpc.qualification.analyze.useMutation();
   const websiteValidation = normalizeWebsite(lead.website);
   const websiteIsValid = websiteValidation.valid;
@@ -200,11 +204,26 @@ export default function Home() {
   const selectedCurrency = CURRENCIES.find((currency) => currency.code === lead.budgetCurrency) ?? CURRENCIES[0];
   const formattedBudgetInput = budgetFocused ? (lead.budgetAmount ? String(lead.budgetAmount) : "") : formatBudgetAmount(lead.budgetAmount, lead.budgetCurrency);
   const updateLead = <K extends keyof LeadInput>(key: K, value: LeadInput[K]) => setLead((current) => ({ ...current, [key]: value }));
+  const assessmentInProgress = analyze.isPending || assessmentReady;
+
+  useEffect(() => {
+    if (!analyze.isPending) return;
+    const startedAt = performance.now();
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const updateVisualProgress = () => setAssessmentProgress(assessmentProgressAt(performance.now() - startedAt));
+
+    updateVisualProgress();
+    if (reducedMotion) return;
+    const interval = window.setInterval(updateVisualProgress, 280);
+    return () => window.clearInterval(interval);
+  }, [analyze.isPending]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
     setReport(null);
+    setAssessmentReady(false);
+    setAssessmentProgress(4);
     if (!lead.company.trim()) {
       setFormError("Please provide a company name to begin the assessment.");
       return;
@@ -217,9 +236,16 @@ export default function Home() {
     const normalizedLead = { ...lead, company: lead.company.trim(), website: websiteValidation.value };
     setLead(normalizedLead);
     try {
-      setReport(await analyze.mutateAsync(normalizedLead));
+      const completedReport = await analyze.mutateAsync(normalizedLead);
+      setAssessmentProgress(100);
+      setAssessmentReady(true);
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 180));
+      setReport(completedReport);
+      setAssessmentReady(false);
       window.setTimeout(() => document.getElementById("qualification-report")?.scrollIntoView({ behavior: "smooth", block: "start" }), 90);
     } catch {
+      setAssessmentProgress(0);
+      setAssessmentReady(false);
       setFormError("Unable to complete the qualification right now. Please try again.");
     }
   }
@@ -281,10 +307,9 @@ export default function Home() {
           <button className="context-toggle" type="button" onClick={() => setExpanded((value) => !value)} aria-expanded={expanded} aria-label={expanded ? "Collapse additional context" : "Expand additional context"}>{expanded ? <Minus size={15} /> : <Plus size={15} />}<span>+ Add more context</span><ChevronDown size={16} className={expanded ? "rotated" : ""} /></button>
           {expanded && <fieldset className="context-fields"><legend><span>Additional context</span><strong>What will improve the assessment?</strong></legend><div className="form-grid two-up"><label>Target market<input value={lead.targetMarket} onChange={(event) => updateLead("targetMarket", event.target.value)} placeholder="United States" /></label><label>Timeline<div className="timeline-options" role="group" aria-label="Timeline">{["0–30 days", "30–90 days", "3–6 months"].map((item) => <button type="button" className={lead.timeline === item ? "active" : ""} onClick={() => updateLead("timeline", lead.timeline === item ? "" : item)} key={item}>{item}</button>)}</div></label><label className="form-wide">Current SEO challenge<textarea value={lead.seoChallenge} onChange={(event) => updateLead("seoChallenge", event.target.value)} placeholder="What has changed, what is not working, or what needs to improve?" rows={3} /></label></div></fieldset>}
           {formError && <p className="form-error" role="alert">{formError}</p>}
-          <div className="form-footer"><p>Assessment output is based only on supplied information and the stated qualification framework.</p><button className="primary-button" type="submit" disabled={analyze.isPending}>{analyze.isPending ? "Analyzing lead" : "Qualify Lead"}<ArrowDownRight size={17} /></button></div>
+          <div className="form-footer"><p>Assessment output is based only on supplied information and the stated qualification framework.</p><div className="form-submit-stack"><button className="primary-button" type="submit" disabled={analyze.isPending}>{assessmentInProgress ? "Analyzing lead" : "Qualify Lead"}<ArrowDownRight size={17} /></button>{assessmentInProgress && <div className="assessment-progress" role="status" aria-live="polite"><div className="assessment-progress-heading"><span>{assessmentReady ? "Assessment ready" : "Assessment in progress"}</span><strong>{assessmentProgress}%</strong></div><Progress className="assessment-progress-bar" value={assessmentProgress} aria-label={`Assessment progress ${assessmentProgress}%`} /><p>{assessmentReady ? "Preparing report" : "Evaluating fit, intent and commercial signals"}</p><small>{analysisSequence}</small></div>}</div></div>
         </form>
       </div></div></div></section>
-      {analyze.isPending && <section className="analysis-section print-hidden" aria-live="polite" aria-label="Lead analysis in progress"><div className="container analysis-inner"><div><p className="section-index">Analysis in progress</p><h2>Analyzing lead</h2><p>Evaluating fit, intent, budget and business need.</p></div><div className="analysis-tracker">{analysisSteps.map((step, index) => <div className={index === 0 ? "analysis-step complete" : "analysis-step"} key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></div>)}</div></div></section>}
       {report && <section className="result-section"><div className="container result-meta print-hidden"><p><span className="live-dot" />Lead intelligence ready</p><button onClick={downloadReport} className="download-button" disabled={isExporting}><Download size={16} />{isExporting ? "Preparing PDF" : "Download report"}</button></div><div className="container"><Report lead={lead} report={report} /></div></section>}
       <PortfolioContext />
       <footer className="footer print-hidden"><div className="container"><span className="brand"><span className="brand-mark" />SEOSignal</span><p>AI-assisted inbound SEO lead qualification.</p><a href="#top">Back to top <ArrowUpRight size={15} /></a></div></footer>
