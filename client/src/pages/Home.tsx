@@ -21,6 +21,7 @@ import {
   type QualificationReport,
   type QualificationSignal,
 } from "../../../shared/qualification";
+import { normalizeWebsite } from "../../../shared/website";
 
 const analysisSteps = ["Reading the lead", "Website", "Requirement", "Fit", "Intent"];
 
@@ -168,8 +169,11 @@ export default function Home() {
   const [formError, setFormError] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [budgetFocused, setBudgetFocused] = useState(false);
+  const [websiteTouched, setWebsiteTouched] = useState(false);
   const analyze = trpc.qualification.analyze.useMutation();
-  const websiteIsValid = /^https?:\/\/[^\s]+\.[^\s]+/i.test(lead.website);
+  const websiteValidation = normalizeWebsite(lead.website);
+  const websiteIsValid = websiteValidation.valid;
+  const websiteError = websiteTouched && lead.website.trim() && !websiteValidation.valid ? websiteValidation.message : "";
   const completion = Math.round(([lead.company, lead.website, lead.serviceRequired, lead.budgetAmount > 0, lead.businessGoal].filter(Boolean).length / 5) * 100);
   const selectedCurrency = CURRENCIES.find((currency) => currency.code === lead.budgetCurrency) ?? CURRENCIES[0];
   const formattedBudgetInput = budgetFocused ? (lead.budgetAmount ? String(lead.budgetAmount) : "") : formatBudgetAmount(lead.budgetAmount, lead.budgetCurrency);
@@ -179,12 +183,19 @@ export default function Home() {
     event.preventDefault();
     setFormError("");
     setReport(null);
-    if (!lead.company.trim() || !lead.website.trim()) {
-      setFormError("Please provide both Company and Website to begin the assessment.");
+    if (!lead.company.trim()) {
+      setFormError("Please provide a company name to begin the assessment.");
       return;
     }
+    if (!websiteValidation.valid) {
+      setWebsiteTouched(true);
+      setFormError(websiteValidation.message);
+      return;
+    }
+    const normalizedLead = { ...lead, company: lead.company.trim(), website: websiteValidation.value };
+    setLead(normalizedLead);
     try {
-      setReport(await analyze.mutateAsync(lead));
+      setReport(await analyze.mutateAsync(normalizedLead));
       window.setTimeout(() => document.getElementById("qualification-report")?.scrollIntoView({ behavior: "smooth", block: "start" }), 90);
     } catch {
       setFormError("Unable to complete the qualification right now. Please try again.");
@@ -241,7 +252,7 @@ export default function Home() {
       </section>
       <section className="tool-section print-hidden" id="qualification-console" aria-labelledby="form-title"><div className="container"><div className="console-frame"><div className="console-topline"><div><span className="console-kicker">NEW LEAD</span><span className="console-name">Qualification console</span></div><div className="completion-meter"><span>INPUT COMPLETENESS</span><i><b style={{ width: `${completion}%` }} /></i><strong>{completion}%</strong></div></div><div className="console-layout"><aside className="console-intro"><p className="section-index">01</p><h2 id="form-title">Qualify a new lead</h2><p>Give the assessment the signals it needs. The system will distinguish evidence from assumptions.</p><div className="console-note"><FileText size={16} /><span>Designed for informed outreach, not conversion prediction.</span></div></aside>
         <form className="lead-form" onSubmit={submit} noValidate>
-          <fieldset><legend><span>Lead</span><strong>Who are we evaluating?</strong></legend><div className="form-grid two-up"><label>Company<input value={lead.company} onChange={(event) => updateLead("company", event.target.value)} placeholder="Northstar Analytics" autoComplete="organization" required /></label><label>Website<div className="field-with-status"><input value={lead.website} onChange={(event) => updateLead("website", event.target.value)} placeholder="https://company.com" type="url" autoComplete="url" required />{websiteIsValid && <Check size={15} aria-label="Valid website format" />}</div></label></div></fieldset>
+          <fieldset><legend><span>Lead</span><strong>Who are we evaluating?</strong></legend><div className="form-grid two-up"><label>Company<input value={lead.company} onChange={(event) => updateLead("company", event.target.value)} placeholder="Northstar Analytics" autoComplete="organization" required /></label><label>Website<div className="field-with-status"><input value={lead.website} onChange={(event) => updateLead("website", event.target.value)} onBlur={() => { setWebsiteTouched(true); if (websiteValidation.valid && websiteValidation.value !== lead.website) updateLead("website", websiteValidation.value); }} placeholder="https://company.com" type="url" autoComplete="url" aria-invalid={Boolean(websiteError)} aria-describedby={websiteError ? "website-validation-message" : undefined} required />{websiteIsValid && <Check size={15} aria-label="Valid website format" />}{websiteError && <span className="field-error" id="website-validation-message">{websiteError}</span>}</div></label></div></fieldset>
           <fieldset><legend><span>Opportunity</span><strong>What are they looking for?</strong></legend><div className="form-grid"><label className="form-wide">Service required<select value={lead.serviceRequired} onChange={(event) => updateLead("serviceRequired", event.target.value as LeadInput["serviceRequired"])}><option>SEO strategy</option><option>Technical SEO</option><option>Content SEO</option><option>Enterprise SEO</option><option>SEO audit</option></select></label></div></fieldset>
           <fieldset><legend><span>Commercial signal</span><strong>What are they prepared to invest?</strong></legend><div className="form-grid"><label className="form-wide">Monthly budget<div className="currency-budget"><select value={lead.budgetCurrency} onChange={(event) => updateLead("budgetCurrency", event.target.value as CurrencyCode)} aria-label="Budget currency">{CURRENCIES.map((currency) => <option key={currency.code} value={currency.code}>{currency.code} — {currency.name} ({currency.symbol})</option>)}</select><input value={formattedBudgetInput} onFocus={() => setBudgetFocused(true)} onBlur={() => setBudgetFocused(false)} onChange={(event) => updateLead("budgetAmount", Number(event.target.value.replace(/[^\d]/g, "")) || 0)} inputMode="numeric" aria-label={`Monthly budget amount in ${selectedCurrency.name}`} /></div></label></div></fieldset>
           <fieldset><legend><span>Business intent</span><strong>What outcome are they trying to achieve?</strong></legend><div className="form-grid"><label className="form-wide">Goal<select value={lead.businessGoal} onChange={(event) => updateLead("businessGoal", event.target.value as LeadInput["businessGoal"])}><option>Qualified leads</option><option>Organic revenue</option><option>Market visibility</option><option>Technical health</option></select></label></div></fieldset>

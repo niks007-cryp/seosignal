@@ -75,3 +75,8 @@
 - [x] Run a redesigned-page end-to-end qualification submission and confirm the full intelligence report renders successfully.
 - [x] Re-verify the rendered report’s selected currency and professional PDF-export control after the presentation refactor.
 - [x] Confirm that the redesigned report’s PDF export creates an actual downloaded file and record the post-redesign evidence.
+- [x] Normalize common website entries before the qualification mutation so valid domains do not surface raw server-side URL-validation errors.
+- [x] Present a concise inline website validation message and prevent invalid submissions from reaching the tRPC mutation.
+- [x] Diagnose and eliminate the recurring /?from_webdev=1 Unexpected token '<' preview parse error, then verify the latest console is clean.
+- [x] Add a reproducible managed-preview safeguard that clears the stale Vite transform cache before development startup.
+- [x] Reload /?from_webdev=1 repeatedly after the safeguard and document a clean preview-console result.
