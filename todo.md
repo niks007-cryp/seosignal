@@ -32,4 +32,26 @@
 - [x] Extend the lead model, AI prompt, local assessment framework, report, and PDF export to preserve the exact selected budget currency without silent conversion.
 - [x] Refine the intelligence report opening, score instrument, and editorial data hierarchy while retaining the thin SVG visualization.
 - [x] Revalidate unit coverage, TypeScript, desktop/mobile layouts, required labels, currency formatting, accessibility, and motion behavior.
-- [ ] Save and present a final-refinement checkpoint.
+- [x] Save and present a final-refinement checkpoint.
+- [x] Preserve the completed UI direction and make only functional, responsive, accessibility, or production-quality changes.
+- [x] Review the full production-integration brief and map remaining API, database, deployment, security, and testing requirements.
+- [x] Add a maintainable server-side qualification configuration for ICP assumptions, service capability, scoring weights, thresholds, and hard disqualifiers.
+- [x] Implement server-side Gemini analysis behind a single model/configuration point without exposing GEMINI_API_KEY to the browser.
+- [x] Validate all AI output with Zod before returning it to the interface and handle malformed AI responses gracefully.
+- [x] Add lightweight server-side homepage inspection for the submitted website with timeout, safe failure handling, and AVAILABLE/UNAVAILABLE status.
+- [x] Create the required leads and qualifications persistence model with separate budget amount and budget currency fields.
+- [x] Ensure selected currency is preserved in UI, AI reasoning context, database records, report rendering, and PDF export without silent conversion.
+- [ ] Provide .env.example with required Gemini and Supabase environment variable names and no secret values.
+- [x] Add integration-oriented tests for qualification scoring, hard disqualifiers, website inspection fallback, structured AI validation, and persistence boundaries.
+- [x] Audit the application for client-side secret exposure and visible Manus branding before release.
+- [x] Remove or document remaining shipped client-side Manus-branded assets, components, and comments so the public release contains no user-facing Manus branding.
+- [x] Re-run the client secret and branding audit after cleanup and record a clean production result.
+- [ ] Commit the verified project to a private GitHub repository.
+- [ ] Prepare production deployment guidance or deployment handoff based on the available hosting path and connector constraints.
+- [x] Save and present the fully integrated production-readiness checkpoint.
+- [x] Move the fundamental ICP mismatch rule and message into the maintainable qualification configuration.
+- [x] Define explicit target-customer ICP assumptions in configuration and consume them in the transparent scoring layer.
+- [x] Use configured target-customer ICP assumptions in the server-side ICP factor evaluation and disqualification logic.
+- [x] Add deterministic coverage proving configured ICP assumptions affect the transparent qualification result.
+- [x] Add deterministic end-to-end scoring tests for configured non-prospect evidence and configured target-profile evidence.
+- [x] Add bounded retry handling for transient Gemini 429/5xx responses and verify the live structured-output integration recovers or fails safely.

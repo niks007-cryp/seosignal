@@ -1,13 +1,17 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { qualifyLead } from "./qualification";
+import { GeminiQualificationError } from "./geminiQualification";
+import { inspectHomepage } from "./websiteInspection";
+import { persistQualification, SupabasePersistenceError } from "./supabasePersistence";
 
 const leadInput = z.object({
   company: z.string().min(2).max(120),
-  website: z.string().url().max(500),
+  website: z.string().url().max(500).refine((value) => /^https?:\/\//i.test(value), "Website must use http or https."),
   serviceRequired: z.enum(["SEO strategy", "Technical SEO", "Content SEO", "Enterprise SEO", "SEO audit"]),
   budgetAmount: z.number().positive().max(1_000_000_000),
   budgetCurrency: z.enum(["USD", "EUR", "GBP", "INR", "CAD", "AUD", "SGD", "AED", "CHF", "JPY"]),
@@ -28,7 +32,21 @@ export const appRouter = router({
     }),
   }),
   qualification: router({
-    analyze: publicProcedure.input(leadInput).mutation(({ input }) => qualifyLead(input)),
+    analyze: publicProcedure.input(leadInput).mutation(async ({ input }) => {
+      const inspection = await inspectHomepage(input.website);
+      try {
+        const outcome = await qualifyLead(input, inspection);
+        await persistQualification({ lead: input, inspection, report: outcome.report, model: outcome.model });
+        return outcome.report;
+      } catch (error) {
+        if (error instanceof GeminiQualificationError || error instanceof SupabasePersistenceError) {
+          console.warn("[SEOSignal] Qualification dependency failed:", error.name);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to complete the qualification right now. Please try again." });
+        }
+        console.error("[SEOSignal] Unexpected qualification error:", error instanceof Error ? error.name : "unknown");
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to complete the qualification right now. Please try again." });
+      }
+    }),
   }),
 });
 

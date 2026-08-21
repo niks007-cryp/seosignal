@@ -1,145 +1,96 @@
-import { invokeLLM, listLLMModels } from "./_core/llm";
 import { formatBudgetAmount, type LeadInput, type QualificationReport } from "../shared/qualification";
+import { analyzeWithGemini, factorEntries, ratingToAssessment, type GeminiQualification } from "./geminiQualification";
+import { FACTOR_LABELS, QUALIFICATION_CONFIG, type AiRating } from "./qualification-config";
+import type { WebsiteInspection } from "./websiteInspection";
 
-const capabilityProfile = `
-SEOSignal evaluates inbound opportunities for a specialist B2B SEO agency. Strong fits are companies seeking strategic, technical, content, enterprise SEO or an SEO audit; have a commercial organic-growth objective; communicate a realistic ongoing budget; can work in a defined market; and show evidence of urgency or provider evaluation. This is decision support, not a prediction of conversion probability. Never invent facts not present in the lead information.
-`;
+const ratingValue: Record<AiRating, number> = { STRONG: 100, MODERATE: 65, WEAK: 25, UNKNOWN: 45 };
 
-const schema = {
-  type: "object",
-  properties: {
-    qualification: { type: "string", enum: ["HIGH", "MEDIUM", "LOW"] },
-    score: { type: "number", minimum: 0, maximum: 100 },
-    title: { type: "string" },
-    rationale: { type: "string" },
-    confidence: {
-      type: "object",
-      properties: {
-        label: { type: "string", enum: ["High", "Moderate", "Limited"] },
-        rationale: { type: "string" },
-        evaluatedSignals: { type: "number", minimum: 0, maximum: 10 },
-      },
-      required: ["label", "rationale", "evaluatedSignals"],
-      additionalProperties: false,
-    },
-    executiveSummary: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: { title: { type: "string" }, body: { type: "string" } },
-        required: ["title", "body"],
-        additionalProperties: false,
-      },
-    },
-    signals: {
-      type: "array",
-      minItems: 10,
-      maxItems: 10,
-      items: {
-        type: "object",
-        properties: {
-          signal: { type: "string" },
-          assessment: { type: "string", enum: ["Strong", "Moderate", "Weak", "Unknown"] },
-          evidence: { type: "string" },
-        },
-        required: ["signal", "assessment", "evidence"],
-        additionalProperties: false,
-      },
-    },
-    missingInfo: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: { title: { type: "string" }, body: { type: "string" } },
-        required: ["title", "body"],
-        additionalProperties: false,
-      },
-    },
-    recommendation: {
-      type: "object",
-      properties: {
-        title: { type: "string" },
-        body: { type: "string" },
-        steps: { type: "array", items: { type: "string" } },
-      },
-      required: ["title", "body", "steps"],
-      additionalProperties: false,
-    },
-    methodology: { type: "string" },
-    assumptions: { type: "string" },
-  },
-  required: ["qualification", "score", "title", "rationale", "confidence", "executiveSummary", "signals", "missingInfo", "recommendation", "methodology", "assumptions"],
-  additionalProperties: false,
-} as const;
+function disqualifiersFor(lead: LeadInput) {
+  const issues: string[] = [];
+  if (!QUALIFICATION_CONFIG.supportedServices.includes(lead.serviceRequired)) issues.push(QUALIFICATION_CONFIG.hardDisqualifiers.unsupportedService);
+  if (lead.budgetAmount < QUALIFICATION_CONFIG.budgetMinimums[lead.budgetCurrency] * 0.35) issues.push(QUALIFICATION_CONFIG.hardDisqualifiers.materiallyLowBudget);
+  if (/0.?30|under 30|less than 30|within 30/i.test(lead.timeline ?? "")) issues.push(QUALIFICATION_CONFIG.hardDisqualifiers.unrealisticTimeline);
+  return issues;
+}
 
-export function evaluateLeadLocally(lead: LeadInput): QualificationReport {
-  const hasContext = Boolean(lead.targetMarket) && Boolean(lead.timeline) && Boolean(lead.seoChallenge);
-  const highIntent = /provider|agency|growth|pipeline|lead|revenue|audit|fix/i.test(`${lead.businessGoal} ${lead.seoChallenge ?? ""}`);
-  const declaredBudget = lead.budgetAmount > 0;
-  const score = Math.max(25, Math.min(94, 35 + (declaredBudget ? 7 : 0) + (lead.targetMarket ? 8 : 2) + (hasContext ? 16 : 4) + (highIntent ? 14 : 7) + (lead.serviceRequired === "Enterprise SEO" ? 12 : 8)));
-  const qualification = score >= 76 ? "HIGH" : score >= 52 ? "MEDIUM" : "LOW";
-  const contextText = hasContext ? "The brief includes market, timeline and current SEO context." : "Several commercial and operational details remain unconfirmed.";
-  const monthlyBudget = `${formatBudgetAmount(lead.budgetAmount, lead.budgetCurrency)} / month`;
+export function applyConfiguredIcpAssessment(lead: LeadInput, inspection: WebsiteInspection, factors: GeminiQualification["factors"]) {
+  const evidence = `${lead.company} ${lead.website} ${inspection.title ?? ""} ${inspection.metaDescription ?? ""} ${inspection.visibleText ?? ""}`.toLowerCase();
+  const nonProspectMatch = QUALIFICATION_CONFIG.icpEvidence.nonProspectTerms.find((term) => evidence.includes(term));
+  if (nonProspectMatch) {
+    return {
+      ...factors,
+      icp_fit: {
+        rating: "WEAK" as const,
+        reason: `Configured ICP screening identified the non-prospect or placeholder marker “${nonProspectMatch}”.`,
+      },
+    };
+  }
+  const targetMatch = QUALIFICATION_CONFIG.icpEvidence.targetTerms.find((term) => evidence.includes(term));
+  if (targetMatch && factors.icp_fit.rating === "UNKNOWN") {
+    return {
+      ...factors,
+      icp_fit: {
+        rating: "MODERATE" as const,
+        reason: `Configured ICP screening found target-profile evidence: “${targetMatch}”.`,
+      },
+    };
+  }
+  return factors;
+}
+
+export function calculateQualificationScore(factors: GeminiQualification["factors"], disqualifiers: string[]) {
+  const weighted = factorEntries(factors).reduce((total, [key, factor]) => total + (ratingValue[factor.rating] * QUALIFICATION_CONFIG.weights[key]) / 100, 0);
+  const fundamentalIcpMismatch = disqualifiers.includes(QUALIFICATION_CONFIG.hardDisqualifiers.fundamentalIcpMismatch);
+  const adjusted = disqualifiers.length || fundamentalIcpMismatch
+    ? Math.min(weighted, disqualifiers.some((item) => item === QUALIFICATION_CONFIG.hardDisqualifiers.unsupportedService || item === QUALIFICATION_CONFIG.hardDisqualifiers.unrealisticTimeline) || fundamentalIcpMismatch ? 35 : 49)
+    : weighted;
+  return Math.max(0, Math.min(100, Math.round(adjusted)));
+}
+
+export function qualificationFromScore(score: number) {
+  return score >= QUALIFICATION_CONFIG.thresholds.high ? "HIGH" : score >= QUALIFICATION_CONFIG.thresholds.medium ? "MEDIUM" : "LOW";
+}
+
+function reportFromAnalysis(lead: LeadInput, inspection: WebsiteInspection, analysis: GeminiQualification): QualificationReport {
+  const factors = applyConfiguredIcpAssessment(lead, inspection, analysis.factors);
+  const disqualifiers = [
+    ...disqualifiersFor(lead),
+    ...(factors.icp_fit.rating === "WEAK" ? [QUALIFICATION_CONFIG.hardDisqualifiers.fundamentalIcpMismatch] : []),
+  ];
+  const score = calculateQualificationScore(factors, disqualifiers);
+  const qualification = qualificationFromScore(score);
+  const evaluatedSignals = factorEntries(factors).filter(([, value]) => value.rating !== "UNKNOWN").length;
+  const unknownSignals = factorEntries(factors).filter(([, value]) => value.rating === "UNKNOWN").length;
   const missingInfo = [
-    !lead.seoChallenge && { title: "Current organic performance", body: "We do not yet know monthly organic traffic, conversion quality or existing channel contribution." },
+    ...analysis.missing_information.map((item) => ({ title: "Discovery input", body: item })),
     !lead.targetMarket && { title: "Target market", body: "The target geography or priority customer market has not been provided." },
     !lead.timeline && { title: "Decision timeline", body: "The expected start date and decision horizon have not been established." },
   ].filter(Boolean) as { title: string; body: string }[];
+  const signals = factorEntries(factors).map(([key, factor]) => ({ signal: FACTOR_LABELS[key], assessment: ratingToAssessment(factor.rating), evidence: factor.reason }));
+  const monthlyBudget = `${formatBudgetAmount(lead.budgetAmount, lead.budgetCurrency)} / month`;
+  const rationale = disqualifiers.length ? `${disqualifiers.join(" ")} ${analysis.reasoning}` : analysis.reasoning;
 
   return {
     qualification,
     score,
     title: qualification === "HIGH" ? "High-fit opportunity" : qualification === "MEDIUM" ? "Potentially viable opportunity" : "Low-fit opportunity",
-    rationale: `${lead.serviceRequired} aligns with the defined SEO capability profile. ${contextText}`,
-    confidence: { label: hasContext ? "High" : "Moderate", rationale: hasContext ? "Based on the supplied commercial, market and delivery context." : "Based on the essential lead details; deeper discovery would improve the assessment.", evaluatedSignals: hasContext ? 8 : 5 },
+    rationale,
+    confidence: { label: unknownSignals <= 2 ? "High" : unknownSignals <= 4 ? "Moderate" : "Limited", rationale: inspection.status === "AVAILABLE" ? "Based on submitted commercial context and a lightweight homepage inspection." : "Based on submitted lead information; the supplied website was unavailable for inspection.", evaluatedSignals },
     executiveSummary: [
-      { title: "Service alignment", body: `The requested ${lead.serviceRequired.toLowerCase()} engagement maps to the defined service profile.` },
-      { title: "Commercial context", body: `A monthly budget of ${monthlyBudget} has been declared. Currency-normalized scope requires discovery validation.` },
-      { title: "Business objective", body: `The lead is focused on ${lead.businessGoal.toLowerCase()}.` },
-      { title: "Information quality", body: contextText },
+      { title: "Service alignment", body: factors.service_fit.reason },
+      { title: "Commercial context", body: `${factors.budget_fit.reason} Declared scope: ${monthlyBudget}.` },
+      { title: "Business objective", body: factors.business_objective_fit.reason },
+      { title: "Website context", body: inspection.status === "AVAILABLE" ? inspection.siteDescription ?? "Homepage inspection completed with limited descriptive content." : "The homepage could not be inspected; website-specific evidence remains unavailable." },
     ],
-    signals: [
-      { signal: "Service Fit", assessment: "Strong", evidence: lead.serviceRequired },
-      { signal: "ICP / Company", assessment: "Moderate", evidence: "Company profile requires discovery validation." },
-      { signal: "Commercial Scope", assessment: declaredBudget ? "Moderate" : "Unknown", evidence: declaredBudget ? monthlyBudget : "Not provided" },
-      { signal: "Market", assessment: lead.targetMarket ? "Strong" : "Unknown", evidence: lead.targetMarket || "Not provided" },
-      { signal: "Business Goal", assessment: "Strong", evidence: lead.businessGoal },
-      { signal: "SEO Use Case", assessment: lead.seoChallenge ? "Moderate" : "Unknown", evidence: lead.seoChallenge || "Not provided" },
-      { signal: "Timeline", assessment: lead.timeline ? "Moderate" : "Unknown", evidence: lead.timeline || "Not provided" },
-      { signal: "Intent", assessment: highIntent ? "Strong" : "Moderate", evidence: highIntent ? "Goal and context indicate active evaluation." : "Intent is implied by the requested engagement." },
-      { signal: "Goal Clarity", assessment: "Strong", evidence: lead.businessGoal },
-      { signal: "Information Completeness", assessment: hasContext ? "Strong" : "Moderate", evidence: hasContext ? "Commercial and operational context supplied." : "Essential lead details supplied; research context remains limited." },
-    ],
-    missingInfo,
-    recommendation: {
-      title: qualification === "LOW" ? "Clarify fit before advancing" : "Schedule a discovery call",
-      body: "Use the next conversation to establish current organic performance, confirm decision-making ownership and validate the commercial scope.",
-      steps: ["Validate current SEO performance", "Confirm decision-maker", "Establish commercial scope"],
-    },
-    methodology: "The assessment compares stated lead requirements against a predefined SEO capability and ideal-customer profile, considering service alignment, commercial scope, market, business goal, timing, intent and information completeness.",
-    assumptions: "This prototype assesses the information supplied in the form. It does not claim to predict conversion probability or infer data that has not been provided.",
+    signals,
+    missingInfo: missingInfo.slice(0, 4),
+    recommendation: analysis.next_best_action,
+    methodology: `The assessment applies ten explicit weighted factors: service fit, ICP/company fit, budget fit, geographic fit, business objective fit, SEO use-case fit, timeline fit, buying intent, goal clarity and information completeness. The prototype ICP focuses on ${QUALIFICATION_CONFIG.targetCustomerTypes.join(", ")}.`,
+    assumptions: "This assessment prototype uses stated lead information and a lightweight homepage inspection where available. It is not a conversion-probability model; production calibration would require historical CRM and conversion data.",
   };
 }
 
-export async function qualifyLead(lead: LeadInput): Promise<QualificationReport> {
-  const fallback = evaluateLeadLocally(lead);
-  try {
-    const catalog = await listLLMModels();
-    const model = catalog.data.find((entry) => entry.id === "gpt-5-mini")?.id;
-    const response = await invokeLLM({
-      model,
-      messages: [
-        { role: "system", content: `You are a precise B2B SEO qualification analyst. ${capabilityProfile} Respond only with the required JSON. Return exactly 10 qualification signals covering service fit, ICP/company fit, commercial scope, market, business goal, SEO use-case fit, timeline, buying intent, goal clarity and information completeness. Use concise, professional analyst language. Any missing input must remain unknown; do not guess.` },
-        { role: "user", content: `Evaluate this lead. Monthly budget: ${formatBudgetAmount(lead.budgetAmount, lead.budgetCurrency)} ${lead.budgetCurrency} per month. Do not convert currencies or infer an exchange rate; treat currency as structured context.\n${JSON.stringify(lead, null, 2)}` },
-      ],
-      response_format: { type: "json_schema", json_schema: { name: "seo_lead_qualification", strict: true, schema } },
-    });
-    const content = response.choices[0]?.message?.content;
-    if (typeof content !== "string") return fallback;
-    const report = JSON.parse(content) as QualificationReport;
-    return { ...fallback, ...report, score: Math.max(0, Math.min(100, Math.round(report.score))) };
-  } catch (error) {
-    console.warn("[SEOSignal] AI qualification unavailable; using the defined assessment framework.", error);
-    return fallback;
-  }
+export async function qualifyLead(lead: LeadInput, inspection: WebsiteInspection) {
+  const analysis = await analyzeWithGemini(lead, inspection);
+  return { report: reportFromAnalysis(lead, inspection, analysis), model: QUALIFICATION_CONFIG.geminiModel };
 }
