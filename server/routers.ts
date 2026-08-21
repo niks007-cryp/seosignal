@@ -8,6 +8,7 @@ import { qualifyLead } from "./qualification";
 import { GeminiQualificationError } from "./geminiQualification";
 import { inspectHomepage } from "./websiteInspection";
 import { persistQualification, SupabasePersistenceError } from "./supabasePersistence";
+import { AI_ASSESSMENT_BUSY_MESSAGE } from "../shared/qualificationErrors";
 
 const leadInput = z.object({
   company: z.string().min(2).max(120),
@@ -41,7 +42,10 @@ export const appRouter = router({
       } catch (error) {
         if (error instanceof GeminiQualificationError || error instanceof SupabasePersistenceError) {
           console.warn("[SEOSignal] Qualification dependency failed:", error.name);
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to complete the qualification right now. Please try again." });
+          const message = error instanceof GeminiQualificationError && error.failure === "RATE_LIMITED"
+            ? AI_ASSESSMENT_BUSY_MESSAGE
+            : "Unable to complete the qualification right now. Please try again.";
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
         }
         console.error("[SEOSignal] Unexpected qualification error:", error instanceof Error ? error.name : "unknown");
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to complete the qualification right now. Please try again." });

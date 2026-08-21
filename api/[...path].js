@@ -805,13 +805,18 @@ var responseJsonSchema = {
   additionalProperties: false
 };
 var GeminiQualificationError = class extends Error {
+  constructor(message, failure = "REQUEST") {
+    super(message);
+    this.failure = failure;
+    this.name = "GeminiQualificationError";
+  }
 };
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 async function analyzeWithGemini(lead, inspection) {
   const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new GeminiQualificationError("Gemini credentials are unavailable.");
+  if (!key) throw new GeminiQualificationError("Gemini credentials are unavailable.", "CREDENTIALS");
   const prompt = `You are an evidence-led B2B SEO lead analyst. Assess only the supplied lead and homepage inspection. Never invent facts, exchange rates, or client outcomes. Use UNKNOWN for unsupported conclusions. Your factor names and ratings must exactly match the output schema. The server independently calculates the final score from the factor ratings, explicit weights, thresholds and hard disqualifiers.
 
 Qualification framework: service fit 20%, ICP/company fit 15%, budget fit 15%, geographic/market fit 10%, business-objective fit 10%, SEO use-case fit 10%, timeline fit 5%, buying intent 5%, goal clarity 5%, information completeness 5%. HIGH is 75-100, MEDIUM 50-74, LOW 0-49. A request for meaningful SEO results in less than 30 days must be WEAK for timeline. Do not calculate or convert between currencies.
@@ -824,7 +829,8 @@ Homepage title: ${inspection.title ?? "Unavailable"}
 Homepage meta description: ${inspection.metaDescription ?? "Unavailable"}
 Homepage visible text excerpt: ${inspection.visibleText ?? "Unavailable"}`;
   let response;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  const maximumAttempts = 3;
+  for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
     try {
       response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${QUALIFICATION_CONFIG.geminiModel}:generateContent`, {
         method: "POST",
@@ -836,28 +842,30 @@ Homepage visible text excerpt: ${inspection.visibleText ?? "Unavailable"}`;
         signal: AbortSignal.timeout(22e3)
       });
     } catch {
-      if (attempt === 0) {
-        await delay(350);
+      if (attempt < maximumAttempts - 1) {
+        await delay(400 * (attempt + 1));
         continue;
       }
-      throw new GeminiQualificationError("Gemini request failed.");
+      throw new GeminiQualificationError("Gemini request failed.", "REQUEST");
     }
     if (response.ok) break;
     const transient = response.status === 429 || response.status >= 500;
-    if (transient && attempt === 0) {
-      await delay(350);
+    if (transient && attempt < maximumAttempts - 1) {
+      const retryAfterSeconds = Number(response.headers.get("retry-after"));
+      const retryDelay = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? Math.min(retryAfterSeconds * 1e3, 3e3) : 400 * (attempt + 1);
+      await delay(retryDelay);
       continue;
     }
-    throw new GeminiQualificationError(`Gemini returned ${response.status}.`);
+    throw new GeminiQualificationError(`Gemini returned ${response.status}.`, response.status === 429 ? "RATE_LIMITED" : "RESPONSE");
   }
-  if (!response?.ok) throw new GeminiQualificationError("Gemini request failed.");
+  if (!response?.ok) throw new GeminiQualificationError("Gemini request failed.", "REQUEST");
   const payload = await response.json();
   const content = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("");
-  if (!content) throw new GeminiQualificationError("Gemini returned no structured content.");
+  if (!content) throw new GeminiQualificationError("Gemini returned no structured content.", "RESPONSE");
   try {
     return geminiQualificationSchema.parse(JSON.parse(content));
   } catch {
-    throw new GeminiQualificationError("Gemini returned malformed structured content.");
+    throw new GeminiQualificationError("Gemini returned malformed structured content.", "RESPONSE");
   }
 }
 function ratingToAssessment(rating) {
@@ -1068,6 +1076,9 @@ async function persistQualification(input) {
   return { leadId };
 }
 
+// shared/qualificationErrors.ts
+var AI_ASSESSMENT_BUSY_MESSAGE = "The AI assessment service is temporarily busy. Please try again in a moment.";
+
 // server/routers.ts
 var leadInput = z3.object({
   company: z3.string().min(2).max(120),
@@ -1100,7 +1111,8 @@ var appRouter = router({
       } catch (error) {
         if (error instanceof GeminiQualificationError || error instanceof SupabasePersistenceError) {
           console.warn("[SEOSignal] Qualification dependency failed:", error.name);
-          throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: "Unable to complete the qualification right now. Please try again." });
+          const message = error instanceof GeminiQualificationError && error.failure === "RATE_LIMITED" ? AI_ASSESSMENT_BUSY_MESSAGE : "Unable to complete the qualification right now. Please try again.";
+          throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message });
         }
         console.error("[SEOSignal] Unexpected qualification error:", error instanceof Error ? error.name : "unknown");
         throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message: "Unable to complete the qualification right now. Please try again." });

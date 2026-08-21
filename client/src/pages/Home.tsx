@@ -24,6 +24,7 @@ import {
 } from "../../../shared/qualification";
 import { normalizeWebsite } from "../../../shared/website";
 import { assessmentProgressAt } from "../../../shared/assessmentProgress";
+import { AI_ASSESSMENT_BUSY_MESSAGE } from "../../../shared/qualificationErrors";
 
 const analysisSequence = "Reading the lead → Website → Requirement → Fit → Intent";
 
@@ -243,10 +244,10 @@ export default function Home() {
       setReport(completedReport);
       setAssessmentReady(false);
       window.setTimeout(() => document.getElementById("qualification-report")?.scrollIntoView({ behavior: "smooth", block: "start" }), 90);
-    } catch {
+    } catch (error) {
       setAssessmentProgress(0);
       setAssessmentReady(false);
-      setFormError("Unable to complete the qualification right now. Please try again.");
+      setFormError(error instanceof Error && error.message === AI_ASSESSMENT_BUSY_MESSAGE ? AI_ASSESSMENT_BUSY_MESSAGE : "Unable to complete the qualification right now. Please try again.");
     }
   }
 

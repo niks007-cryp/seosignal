@@ -61,7 +61,14 @@ const responseJsonSchema = {
   additionalProperties: false,
 } as const;
 
-export class GeminiQualificationError extends Error {}
+export type GeminiQualificationFailure = "CREDENTIALS" | "RATE_LIMITED" | "REQUEST" | "RESPONSE";
+
+export class GeminiQualificationError extends Error {
+  constructor(message: string, public readonly failure: GeminiQualificationFailure = "REQUEST") {
+    super(message);
+    this.name = "GeminiQualificationError";
+  }
+}
 
 function delay(milliseconds: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
@@ -69,7 +76,7 @@ function delay(milliseconds: number) {
 
 export async function analyzeWithGemini(lead: LeadInput, inspection: WebsiteInspection): Promise<GeminiQualification> {
   const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new GeminiQualificationError("Gemini credentials are unavailable.");
+  if (!key) throw new GeminiQualificationError("Gemini credentials are unavailable.", "CREDENTIALS");
 
   const prompt = `You are an evidence-led B2B SEO lead analyst. Assess only the supplied lead and homepage inspection. Never invent facts, exchange rates, or client outcomes. Use UNKNOWN for unsupported conclusions. Your factor names and ratings must exactly match the output schema. The server independently calculates the final score from the factor ratings, explicit weights, thresholds and hard disqualifiers.
 
@@ -84,7 +91,8 @@ Homepage meta description: ${inspection.metaDescription ?? "Unavailable"}
 Homepage visible text excerpt: ${inspection.visibleText ?? "Unavailable"}`;
 
   let response: Response | undefined;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  const maximumAttempts = 3;
+  for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
     try {
       response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${QUALIFICATION_CONFIG.geminiModel}:generateContent`, {
         method: "POST",
@@ -96,23 +104,30 @@ Homepage visible text excerpt: ${inspection.visibleText ?? "Unavailable"}`;
         signal: AbortSignal.timeout(22_000),
       });
     } catch {
-      if (attempt === 0) { await delay(350); continue; }
-      throw new GeminiQualificationError("Gemini request failed.");
+      if (attempt < maximumAttempts - 1) { await delay(400 * (attempt + 1)); continue; }
+      throw new GeminiQualificationError("Gemini request failed.", "REQUEST");
     }
     if (response.ok) break;
     const transient = response.status === 429 || response.status >= 500;
-    if (transient && attempt === 0) { await delay(350); continue; }
-    throw new GeminiQualificationError(`Gemini returned ${response.status}.`);
+    if (transient && attempt < maximumAttempts - 1) {
+      const retryAfterSeconds = Number(response.headers.get("retry-after"));
+      const retryDelay = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+        ? Math.min(retryAfterSeconds * 1_000, 3_000)
+        : 400 * (attempt + 1);
+      await delay(retryDelay);
+      continue;
+    }
+    throw new GeminiQualificationError(`Gemini returned ${response.status}.`, response.status === 429 ? "RATE_LIMITED" : "RESPONSE");
   }
-  if (!response?.ok) throw new GeminiQualificationError("Gemini request failed.");
+  if (!response?.ok) throw new GeminiQualificationError("Gemini request failed.", "REQUEST");
 
   const payload = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   const content = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("");
-  if (!content) throw new GeminiQualificationError("Gemini returned no structured content.");
+  if (!content) throw new GeminiQualificationError("Gemini returned no structured content.", "RESPONSE");
   try {
     return geminiQualificationSchema.parse(JSON.parse(content));
   } catch {
-    throw new GeminiQualificationError("Gemini returned malformed structured content.");
+    throw new GeminiQualificationError("Gemini returned malformed structured content.", "RESPONSE");
   }
 }
 

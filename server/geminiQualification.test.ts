@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { analyzeWithGemini, geminiQualificationSchema } from "./geminiQualification";
+import { analyzeWithGemini, GeminiQualificationError, geminiQualificationSchema } from "./geminiQualification";
 
 const validPayload = {
   qualification: "HIGH", score: 85, confidence: "HIGH", reasoning: "Validated response.",
@@ -24,4 +24,14 @@ describe("Gemini structured-output validation", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(result.factors.service_fit.rating).toBe("STRONG");
   });
+
+  it("retries a rate-limited provider response before surfacing an explicit rate-limit failure", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-key");
+    const fetchMock = vi.fn().mockResolvedValue(new Response("busy", { status: 429 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(analyzeWithGemini({ company: "Northstar", website: "https://northstar.example", serviceRequired: "SEO strategy", budgetAmount: 5000, budgetCurrency: "USD", businessGoal: "Qualified leads" }, { status: "UNAVAILABLE" }))
+      .rejects.toMatchObject<Partial<GeminiQualificationError>>({ failure: "RATE_LIMITED" });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  }, 5_000);
 });

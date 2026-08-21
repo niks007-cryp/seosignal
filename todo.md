@@ -117,3 +117,9 @@
 - [x] Add a minimal, explicitly UI-only `Assessment in progress` indicator beneath the Analyze Lead CTA that advances smoothly toward, but never reaches, 100% before the real request completes.
 - [x] Ensure the loading indicator shows truthful current-request wording, finishes at 100% only after success, does not show a fake success state on errors, and respects reduced-motion preferences.
 - [x] Add deterministic coverage and verify the focused loading improvement in responsive preview layouts, TypeScript, lint availability, tests, and production build before committing; the project has no lint script and the prior live backend flow remains unchanged.
+- [x] Trace the 21:32 managed-preview qualification mutation failure to its server-side dependency or error boundary without exposing credentials.
+- [x] Apply the minimum safe fix for the preview qualification failure and add deterministic regression coverage for the identified path.
+- [x] Re-run the affected error path through deterministic coverage, then run tests, TypeScript, and production build before committing the focused reliability repair.
+- [x] Verify that the reported preview mutation failure is caused by Gemini returning HTTP 429 after its existing retry, while Supabase remains reachable.
+- [x] Improve bounded retry handling for Gemini 429 responses and expose an accurate, retry-oriented client message without claiming assessment completion.
+- [x] Add deterministic Gemini-429 regression coverage and document the external API quota requirement without exposing credentials.
