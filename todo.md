@@ -65,3 +65,13 @@
 - [x] Refresh the Vercel deployment handoff documentation to reflect the verified production adapter, live URL, and duration configuration.
 - [x] Diagnose and fix the /?from_webdev=1 Unexpected token '<' client-side syntax error, then verify the console is clean.
 - [x] Eliminate duplicate React keys in repeated missing-information report entries so the preview console remains clean.
+- [x] Recompose the existing SEOSignal hero into a centered premium landing-page composition while retaining all approved messaging and functionality.
+- [x] Add responsive scroll-aware floating navigation using existing SEOSignal content, including a refined mobile menu treatment.
+- [x] Add the approved AI-powered lead-qualification announcement pill, premium primary and secondary CTA treatments, and reduced-motion-safe entrance choreography.
+- [x] Restyle the hero atmosphere with layered emerald gradients, subtle texture, and depth without introducing reference-site content or claims.
+- [x] Present the real qualification console as a large Apple-style floating product surface while preserving every functional form field and interaction.
+- [x] Refine responsive desktop and mobile layout, whitespace, typography, and CTA behavior without changing qualification, AI, database, PDF, currency, or report logic.
+- [x] Revalidate the redesign for TypeScript, tests, production build, qualification results, PDF export, currency handling, mobile usability, and absence of reference-site content.
+- [x] Run a redesigned-page end-to-end qualification submission and confirm the full intelligence report renders successfully.
+- [x] Re-verify the rendered report’s selected currency and professional PDF-export control after the presentation refactor.
+- [x] Confirm that the redesigned report’s PDF export creates an actual downloaded file and record the post-redesign evidence.
