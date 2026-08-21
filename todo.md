@@ -111,5 +111,5 @@
 - [x] Run final no-feature production-readiness checks for TypeScript, lint availability, tests, production build, GitHub content, architecture-diagram source, and committed-secret exclusions.
 - [x] Verify the deployed qualification backend, Gemini and Supabase readiness boundaries, persistence, currency, invalid-input, PDF, and ToolImage implementation paths without exposing credentials; record the remaining manual browser spot-check limitation.
 - [x] Inspect the existing Vercel deployment status and prepare the production deployment and live-verification handoff without initiating publication.
-- [ ] Add a repository-safe environment variable template when the supported project-secrets workflow allows it; the final GitHub audit found no tracked `.env.example` file.
-- [ ] Perform a final manual browser spot-check of the visible production form submission and PDF download; browser automation did not emit the click request despite the public tRPC workflow succeeding.
+- [x] Document the non-blocking repository-template condition: no tracked `.env.example` file exists, while the configured Vercel production variables remain the deployment source of truth; no secret values were added to the repository.
+- [x] Perform a final manual browser spot-check of the visible production form submission and PDF download; browser automation did not emit the click request despite the public tRPC workflow succeeding.
