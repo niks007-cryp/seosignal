@@ -87,3 +87,7 @@
 - [x] Record unresolved development module requests with their URL, Accept header, and response status so any future parse error has a concrete trace.
 - [x] Exercise the unresolved-module trace and document its correlation with the navigation-only fallback behavior.
 - [x] Restore the configured preview debug collector asset so its injected script is served as JavaScript rather than appearing as an unresolved module request.
+- [x] Audit the implemented SEOSignal codebase, database metadata, AI flow, scoring engine, PDF export, environment configuration, and deployment structure without altering application behavior.
+- [x] Create `docs/SEOSignal-Technical-Documentation.md` with code-verified technical and assessment documentation, clearly separating facts, prototype assumptions, and AI interpretations.
+- [x] Add a concise implementation-accurate SEOSignal overview to the README and commit the documentation-only update to GitHub.
+- [x] Commit and push the documentation-only audit, README update, and backlog record to GitHub, then save a restorable checkpoint.
