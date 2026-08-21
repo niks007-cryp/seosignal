@@ -63,3 +63,5 @@
 - [x] Map the user-facing limited-confidence label to a valid stored confidence value and add regression coverage for the database constraint.
 - [x] Ensure a failed qualification insert cleans up its just-created temporary lead and cover the rollback boundary.
 - [x] Refresh the Vercel deployment handoff documentation to reflect the verified production adapter, live URL, and duration configuration.
+- [x] Diagnose and fix the /?from_webdev=1 Unexpected token '<' client-side syntax error, then verify the console is clean.
+- [x] Eliminate duplicate React keys in repeated missing-information report entries so the preview console remains clean.
