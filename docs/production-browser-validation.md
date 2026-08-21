@@ -16,4 +16,14 @@ The subsequent safe error response isolated a persistence defect rather than a b
 
 The remediation maps `High`, `Moderate`, and `Limited` report labels to `HIGH`, `MEDIUM`, and `LOW` for storage. It also deletes a just-created lead if the linked qualification insert fails. The persistence test suite now covers both conditions.
 
+The corresponding production deployment is `dpl_FHQz1LwfP5Tc6C1WU6d1Z9PrxZGq` (commit `1b212a7`) and reached the `READY` state. A fresh browser validation session is in progress against that deployment.
+
+In that final fresh session, **SEOSignal Final Browser Validation** was explicitly committed as the company, and the console reached **80% input completeness**. The website field will be explicitly entered before submission so browser-restored visual values do not substitute for application state.
+
+## Final Result
+
+The final form reached **100% input completeness** after `https://example.com` was explicitly entered. Its live submission transitioned through the sequential analysis state and then rendered the complete intelligence report in the browser, including the score, ten-factor signal map, factor table, discovery gaps, recommended next move, and **Download report** control.
+
+The successful browser report persisted both a `leads` row and its linked `qualifications` row in Supabase. The temporary validation lead was then deleted with HTTP `204`; follow-up queries returned empty arrays for both tables, confirming the cascade cleanup. No customer or production lead data was used or retained for this test.
+
 No customer or lead data is used for this validation. Any temporary record created during the test will be removed after its report-rendering and persistence paths are confirmed.

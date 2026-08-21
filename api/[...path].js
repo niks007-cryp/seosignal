@@ -999,6 +999,9 @@ async function inspectHomepage(website) {
 // server/supabasePersistence.ts
 var SupabasePersistenceError = class extends Error {
 };
+function storedConfidence(label) {
+  return { High: "HIGH", Moderate: "MEDIUM", Limited: "LOW" }[label];
+}
 async function request(path, init) {
   const configuredUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const baseUrl = configuredUrl?.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
@@ -1037,20 +1040,31 @@ async function persistQualification(input) {
   const savedLeads = await leads.json();
   const leadId = savedLeads[0]?.id;
   if (!leadId) throw new SupabasePersistenceError("Supabase did not return a lead id.");
-  await request("/rest/v1/qualifications", {
-    method: "POST",
-    body: JSON.stringify({
-      lead_id: leadId,
-      qualification: input.report.qualification,
-      score: input.report.score,
-      confidence: input.report.confidence.label.toUpperCase(),
-      reasoning: input.report.rationale,
-      factors: input.report.signals,
-      missing_information: input.report.missingInfo,
-      next_best_action: input.report.recommendation,
-      model: input.model
-    })
-  });
+  try {
+    await request("/rest/v1/qualifications", {
+      method: "POST",
+      body: JSON.stringify({
+        lead_id: leadId,
+        qualification: input.report.qualification,
+        score: input.report.score,
+        confidence: storedConfidence(input.report.confidence.label),
+        reasoning: input.report.rationale,
+        factors: input.report.signals,
+        missing_information: input.report.missingInfo,
+        next_best_action: input.report.recommendation,
+        model: input.model
+      })
+    });
+  } catch (error) {
+    try {
+      await request(`/rest/v1/leads?id=eq.${encodeURIComponent(leadId)}`, {
+        method: "DELETE",
+        headers: { Prefer: "return=minimal" }
+      });
+    } catch {
+    }
+    throw error;
+  }
   return { leadId };
 }
 
