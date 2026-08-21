@@ -108,3 +108,8 @@
 - [x] Preserve the supplied ToolImage builder copy, neutral `View ToolImage →` link, and professional feedback sentence without customer, case-study, traffic, ranking, conversion, pricing, testimonial, or sales claims.
 - [x] Audit and remove any visible `Made with Manus` production branding while retaining only required project functionality and platform-neutral presentation.
 - [x] Verify the revised portfolio footnote is subordinate to the assessment on desktop and mobile, then run tests, TypeScript, production build, and commit the update.
+- [x] Run final no-feature production-readiness checks for TypeScript, lint availability, tests, production build, GitHub content, architecture-diagram source, and committed-secret exclusions.
+- [x] Verify the deployed qualification backend, Gemini and Supabase readiness boundaries, persistence, currency, invalid-input, PDF, and ToolImage implementation paths without exposing credentials; record the remaining manual browser spot-check limitation.
+- [x] Inspect the existing Vercel deployment status and prepare the production deployment and live-verification handoff without initiating publication.
+- [ ] Add a repository-safe environment variable template when the supported project-secrets workflow allows it; the final GitHub audit found no tracked `.env.example` file.
+- [ ] Perform a final manual browser spot-check of the visible production form submission and PDF download; browser automation did not emit the click request despite the public tRPC workflow succeeding.
