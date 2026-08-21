@@ -11,7 +11,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { trpc } from "@/lib/trpc";
 import {
   CURRENCIES,
@@ -106,6 +106,7 @@ function FloatingNavigation() {
               <button className="mobile-nav-toggle" type="button" aria-label="Open navigation"><Menu size={18} /><span>Menu</span></button>
             </SheetTrigger>
             <SheetContent side="right" className="seosignal-mobile-sheet">
+              <SheetTitle className="sr-only">SEOSignal navigation</SheetTitle>
               <div className="mobile-sheet-brand"><span className="brand"><span className="brand-mark" />SEOSignal</span><span>AI Lead Qualification</span></div>
               <p className="mobile-sheet-label">Assessment Prototype</p>
               <SheetClose asChild>

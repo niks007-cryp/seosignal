@@ -97,3 +97,5 @@
 - [x] Evaluate the optional ToolImage form example and deliberately omit it because the existing required commercial fields have defaults that could imply unverified prototype assumptions.
 - [x] Verify the ToolImage addition across responsive layouts, tests, TypeScript, and production build without changing qualification, Gemini, Supabase, or PDF logic.
 - [x] Commit and push the verified ToolImage validation-example integration to the existing GitHub repository.
+- [x] Add an accessible `DialogTitle` to the mobile navigation sheet so Radix DialogContent has the required screen-reader label.
+- [x] Verify the titled mobile navigation sheet compiles without a new DialogContent warning, preserves the mobile UI, passes regression checks, and is committed to GitHub.
