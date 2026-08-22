@@ -2,13 +2,13 @@
 
 SEOSignal is an **AI-assisted inbound SEO lead-qualification application**. It evaluates a submitted company, public website, requested SEO service, monthly budget and selected currency, business goal, and optional market/timeline/challenge context. The result is an evidence-led report with factor analysis, a deterministic 0–100 framework score, `HIGH`/`MEDIUM`/`LOW` qualification, missing information, and a recommended next action.
 
-> **Important:** SEOSignal is a decision-support prototype, not a conversion-probability model. Gemini provides bounded structured factor evidence; the application independently calculates the returned score, classification, confidence, and applicable hard-disqualifier caps.
+> **Important:** SEOSignal is a decision-support prototype, not a conversion-probability model. Groq `openai/gpt-oss-20b` provides bounded structured factor evidence; the application independently calculates the returned score, classification, confidence, and applicable hard-disqualifier caps.
 
 ## Implemented workflow
 
 1. The browser validates the lead form and normalizes a bare domain to HTTPS when appropriate.
 2. The server validates the input, performs a lightweight inspection of only the submitted public homepage, and continues with an `UNAVAILABLE` status if inspection cannot be completed.
-3. Gemini receives the lead plus bounded inspection evidence and returns structured factor ratings, reasoning, missing-information suggestions, and a next-best action.
+3. Groq `openai/gpt-oss-20b` receives the lead plus bounded inspection evidence and returns strict structured factor ratings, reasoning, missing-information suggestions, and a next-best action.
 4. Zod validates the AI output. Configured factors, rating values, thresholds, ICP screening, and hard-disqualifier caps determine the final score and qualification.
 5. The report is saved in linked Supabase `leads` and `qualifications` records, rendered in the browser, and may be downloaded as a client-generated PDF.
 
@@ -30,8 +30,7 @@ Configure secrets through secure deployment environment-variable controls; do no
 
 | Variable | Required | Used by | Purpose |
 | --- | --- | --- | --- |
-| `GEMINI_API_KEY` | Yes | Server only | Authenticates the Gemini structured-output request. |
-| `GEMINI_MODEL` | Optional | Server only | Overrides the configured default, `gemini-3.6-flash`. |
+| `GROQ_API_KEY` | Yes | Server only | Authenticates the Groq `openai/gpt-oss-20b` strict structured-output request. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Server persistence code | Supabase project URL; the REST suffix is accepted or derived. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server only | Writes linked lead and qualification rows through Supabase REST. Never expose it in the browser. |
 | `SUPABASE_ACCESS_TOKEN` | Setup/migration only | Server-side operational workflow | Used to apply or manage the Supabase schema when required. |
@@ -45,10 +44,10 @@ Configure secrets through secure deployment environment-variable controls; do no
 ```bash
 pnpm check
 pnpm test
-GEMINI_INTEGRATION_TEST=true pnpm vitest run server/geminiQualification.integration.test.ts
+GROQ_INTEGRATION_TEST=true pnpm vitest run server/groqQualification.integration.test.ts
 ```
 
-The live Gemini test is opt-in because it calls the configured external model. The default suite is deterministic.
+The live Groq test is opt-in because it calls the configured external model. The default suite is deterministic.
 
 ## Documentation
 

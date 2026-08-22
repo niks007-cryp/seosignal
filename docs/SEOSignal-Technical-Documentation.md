@@ -231,12 +231,12 @@ The schema constrains qualification to `HIGH`/`MEDIUM`/`LOW`, score to 0–100, 
 
 | Control | Actual behavior |
 | --- | --- |
-| Gemini key | `GEMINI_API_KEY` is read on the server immediately before the external request and sent as `x-goog-api-key`. |
+| Groq key | `GROQ_API_KEY` is read on the server immediately before the external request and sent as bearer authorization to the Groq Chat Completions API. |
 | Supabase service role | `SUPABASE_SERVICE_ROLE_KEY` is used only in the server REST client as `apikey` and bearer authorization. |
 | Secret storage | The README directs deployment-platform secret controls; no tracked `.env` or `.env.example` file exists in this repository audit. |
 | Input validation | Client normalizes/validates URL format; the server uses Zod validation and an HTTP(S) URL refinement. |
 | Website-safety boundary | Inspection blocks common local/private hostnames, limits request duration, does not follow redirects, requires HTML, and bounds extracted content. |
-| AI-output validation | Gemini output is constrained by a response JSON schema and Zod parsing before downstream scoring. |
+| AI-output validation | Groq structured output uses a strict response JSON schema and is Zod-parsed before downstream scoring. |
 | Client boundary | The browser receives only the report. Provider credentials and raw Supabase service-role authorization never appear in client application code. |
 
 This audit confirms that secret files are not tracked; it does not prove that a secret was never exposed outside the repository or in an external provider’s logs. [2] [4] [7] [8] [12]
@@ -248,7 +248,7 @@ This audit confirms that secret files are not tracked; it does not prove that a 
 | Invalid form or missing company | Client stops submission and shows a form-level message. |
 | Invalid URL | Client shows an inline/form-level validation message; server independently rejects non-HTTP(S) invalid URLs. |
 | Website unavailable | Server returns `UNAVAILABLE` inspection and continues qualification without site evidence. |
-| Gemini failure or malformed response | Server throws `GeminiQualificationError`; router returns a generic retry message. |
+| Groq failure or malformed response | Server throws `GroqQualificationError`; router returns a generic retry message or an accurate temporary-busy message for rate limits. |
 | Supabase failure | Persistence throws `SupabasePersistenceError`; router returns the same generic retry message. If the qualification insert fails after lead insert, cleanup is attempted. |
 | Network/mutation failure | Client catch block shows the generic retry message. |
 | PDF generation failure | The export routine uses `try/finally` to reset its busy state but has no dedicated user-visible PDF-error message. An exception therefore is not specially surfaced by this page. |
@@ -263,7 +263,7 @@ Because it captures the rendered report, the PDF contains the same report sectio
 
 The interface supports USD, EUR, GBP, INR, CAD, AUD, SGD, AED, CHF, and JPY. `budgetAmount` and `budgetCurrency` are separate fields through input, AI context, persistence, report display, and PDF export. Formatting uses `Intl.NumberFormat` with a currency-specific locale and rounds display to zero fraction digits. [1] [5] [8]
 
-> **No currency conversion is implemented.** The Gemini prompt explicitly forbids exchange-rate conversion. Budget comparisons use a separate configured prototype minimum for each selected currency; the original amount and currency are retained to avoid ambiguity. [3] [4]
+> **No currency conversion is implemented.** The Groq system/user instructions explicitly forbid exchange-rate conversion. Budget comparisons use a separate configured prototype minimum for each selected currency; the original amount and currency are retained to avoid ambiguity. [3] [4]
 
 ## 23. Design and UX decisions
 
@@ -280,7 +280,7 @@ The report intentionally separates score, evidence, missing signals, and next ac
 | Weights, rating values, and thresholds | **Prototype assumption** | Ten weights, rating mapping, and 75/50 thresholds are configured code values. |
 | Currency minimums and cap rules | **Prototype assumption** | Per-currency commercial minimums and 35% materially-low rule are configured values. |
 | Homepage inspection fields | **Fact** | The code extracts only bounded title, meta description, and visible text from one submitted page when available. |
-| Factor reasons, missing information, next action | **AI interpretation** | Gemini provides structured interpretations from submitted lead/homepage evidence. |
+| Factor reasons, missing information, next action | **AI interpretation** | Groq provides structured interpretations from submitted lead/homepage evidence. |
 | Final score, classification, confidence | **Fact: deterministic implementation** | The application recomputes score/classification and derives confidence from unknown-signal count. |
 
 ## 25. Why assumptions are necessary
@@ -295,13 +295,13 @@ The following are **future directions, not implemented features**: CRM integrati
 
 ## 27. Limitations
 
-SEOSignal is bounded by prototype assumptions, not historical calibration. Website inspection is intentionally lightweight and can fail or omit context; it neither crawls a site nor follows redirects. Gemini output can vary despite its schema and prompt constraints. Submitted lead details may be incomplete, and the score is not a probability of conversion. The PDF path is client-side and has no dedicated on-page error presentation if rendering fails. [1] [3] [4] [7]
+SEOSignal is bounded by prototype assumptions, not historical calibration. Website inspection is intentionally lightweight and can fail or omit context; it neither crawls a site nor follows redirects. Groq output can vary despite strict schema and prompt constraints. Submitted lead details may be incomplete, and the score is not a probability of conversion. The PDF path is client-side and has no dedicated on-page error presentation if rendering fails. [1] [3] [4] [7]
 
 ## 28. How I would explain SEOSignal in a 2-minute interview
 
-“SEOSignal is an inbound SEO lead-qualification prototype for an agency sales workflow. Instead of treating every inquiry equally, it asks for the company, public website, requested SEO service, monthly budget with its original currency, business goal, and optional context such as target market and timeline. The server inspects only the supplied homepage when it is available, then sends that bounded evidence to Gemini for a structured assessment of ten factors.
+“SEOSignal is an inbound SEO lead-qualification prototype for an agency sales workflow. Instead of treating every inquiry equally, it asks for the company, public website, requested SEO service, monthly budget with its original currency, business goal, and optional context such as target market and timeline. The server inspects only the supplied homepage when it is available, then sends that bounded evidence to Groq `openai/gpt-oss-20b` for a structured assessment of ten factors.
 
-The important design choice is that Gemini is not trusted to make the final commercial decision. It provides factor ratings, evidence, missing-information prompts, and a recommended next step. The application maps those ratings to numeric values, applies explicit weights, configured thresholds, ICP checks, and hard-disqualifier caps, and then computes the HIGH, MEDIUM, or LOW result itself. It also derives confidence from how many signals remain unknown.
+The important design choice is that Groq is not trusted to make the final commercial decision. It provides factor ratings, evidence, missing-information prompts, and a recommended next step. The application maps those ratings to numeric values, applies explicit weights, configured thresholds, ICP checks, and hard-disqualifier caps, and then computes the HIGH, MEDIUM, or LOW result itself. It also derives confidence from how many signals remain unknown.
 
 The submitted lead and generated qualification are stored separately in Supabase, so the business context is distinct from the assessment output. The user sees a structured report and can download the same rendered report as a PDF. The limitation is that the weights and thresholds are prototype assumptions, not conversion probabilities. To make it production-grade, I would connect CRM outcomes, calibrate the model on historical data, add monitoring and feedback, and version the scoring and prompts.”
 
@@ -310,17 +310,17 @@ The submitted lead and generated qualification are stored separately in Supabase
 | Question | Answer |
 | --- | --- |
 | Why use AI here? | AI converts unstructured lead and bounded homepage context into consistent factor evidence, missing-information prompts, and next steps. It is not the final scoring authority. |
-| Why Gemini? | The implementation calls Gemini’s `generateContent` API with JSON-schema structured output and a server-side API key. The configured default is `gemini-3.6-flash`. |
-| Why not let the LLM decide HIGH/MEDIUM/LOW? | Although the Gemini schema includes those fields, the application recomputes score and qualification from factor ratings, weights, thresholds, ICP adjustments, and caps. |
+| Why Groq? | The implementation calls Groq’s OpenAI-compatible Chat Completions API with strict JSON-schema structured output and a server-side API key. The configured model is `openai/gpt-oss-20b`. |
+| Why not let the LLM decide HIGH/MEDIUM/LOW? | Although the Groq schema includes those fields, the application recomputes score and qualification from factor ratings, weights, thresholds, ICP adjustments, and caps. |
 | How were weights determined? | They are transparent prototype configuration values, not empirically learned coefficients. Service fit is 20%; ICP and budget are 15% each; the others total the remaining 50%. |
 | Where do assumptions come from? | They are declared in the qualification configuration and report assumptions: service capability, target profile, budget minimums, weights, and thresholds. |
 | How would you validate the score? | Compare scores and factor patterns with CRM acceptance, pipeline, revenue, and closed/won outcomes; then calibrate and monitor the framework by segment. |
 | What is needed for production grade? | CRM/outcome integration, feedback, monitoring, audit/version records, controlled experiments, and empirical recalibration. |
-| How do you control hallucinations? | The prompt limits Gemini to supplied evidence, permits `UNKNOWN`, uses JSON schema plus Zod validation, and keeps final business rules deterministic. It reduces—not eliminates—model risk. |
+| How do you control hallucinations? | The instructions limit Groq to supplied evidence, permit `UNKNOWN`, use strict JSON schema plus Zod validation, and keep final business rules deterministic. It reduces—not eliminates—model risk. |
 | What happens if a website is unavailable? | Inspection returns `UNAVAILABLE`; the assessment continues without site-specific evidence, and confidence rationale notes that limitation. |
 | Why Supabase? | The current server writes a relational lead record and linked JSON-capable qualification record through the Supabase PostgREST endpoint. |
 | Why separate leads and qualifications? | Submitted commercial facts and generated assessment output have distinct lifecycles; the one-to-many schema permits future reassessments even though the current flow creates one. |
-| How are API keys protected? | Gemini and Supabase service-role keys are read on the server from environment variables; the browser receives only the final report. |
+| How are API keys protected? | Groq and Supabase service-role keys are read on the server from environment variables; the browser receives only the final report. |
 | How does the score work? | The server maps STRONG/MODERATE/WEAK/UNKNOWN to 100/65/25/45, multiplies by configured weights, rounds, and applies disqualifier caps. |
 | What does confidence mean? | It is a deterministic indicator of evidence completeness: fewer unknown factors produce higher confidence. It is not a conversion probability. |
 | How does currency work? | Amount and code are stored separately with no conversion. Formatting is locale-aware, and configured minimums are selected by currency. |
@@ -336,7 +336,7 @@ flowchart TD
     CV --> API[Public tRPC qualification.analyze]
     API --> SV[Zod server validation]
     SV --> WI[One submitted-homepage inspection]
-    SV --> G[Gemini structured factor assessment]
+    SV --> G[Groq structured factor assessment]
     WI --> G
     G --> Z[Zod AI output validation]
     Z --> D[Configured ICP adjustment + deterministic score, confidence, and qualification]
@@ -349,15 +349,15 @@ flowchart TD
 
 | Verification item | Result |
 | --- | --- |
-| Deterministic test suite | 25 tests passed; 1 opt-in live Gemini integration test remained skipped by default. |
+| Deterministic test suite | 28 tests passed; 1 opt-in live Groq integration test remained skipped by default. |
 | TypeScript | `pnpm check` passed. |
 | Supabase field contracts | Zero-row projections for all documented `leads` and `qualifications` fields returned HTTP 200. |
-| Live Gemini invocation | Not performed for this documentation-only audit; the opt-in integration test exists because it uses the configured external model. |
+| Live Groq invocation | The opt-in integration test returned a Zod-validated ten-factor assessment using `openai/gpt-oss-20b`. |
 
 [1]: ../client/src/pages/Home.tsx "Primary SEOSignal page: form, report, state, and PDF implementation"
 [2]: ../server/routers.ts "tRPC input contract and assessment mutation"
 [3]: ../server/qualification.ts "Deterministic score, qualification, confidence, and report assembly"
-[4]: ../server/geminiQualification.ts "Gemini prompt, structured schema, retry, and output validation"
+[4]: ../server/groqQualification.ts "Groq prompt, strict structured schema, retry, and output validation"
 [5]: ../shared/qualification.ts "Shared lead model, currencies, and report types"
 [6]: ../server/qualification-config.ts "Configured model, scope, weights, thresholds, minimums, and prototype ICP"
 [7]: ../server/websiteInspection.ts "Single-homepage inspection implementation"

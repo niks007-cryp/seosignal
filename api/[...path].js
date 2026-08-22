@@ -63,7 +63,7 @@ var ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
-  geminiApiKey: process.env.GEMINI_API_KEY ?? "",
+  groqApiKey: process.env.GROQ_API_KEY ?? "",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
 };
@@ -687,12 +687,12 @@ function formatBudgetAmount(amount, currency) {
   }).format(Math.max(0, amount));
 }
 
-// server/geminiQualification.ts
+// server/groqQualification.ts
 import { z as z2 } from "zod";
 
 // server/qualification-config.ts
 var QUALIFICATION_CONFIG = {
-  geminiModel: process.env.GEMINI_MODEL ?? "gemini-3.6-flash",
+  groqModel: "openai/gpt-oss-20b",
   supportedServices: ["SEO strategy", "Technical SEO", "Content SEO", "Enterprise SEO", "SEO audit"],
   supportedObjectives: ["Qualified leads", "Organic revenue", "Market visibility", "Technical health"],
   targetCustomerTypes: [
@@ -750,10 +750,10 @@ var FACTOR_LABELS = {
   information_completeness: "Information Completeness"
 };
 
-// server/geminiQualification.ts
+// server/groqQualification.ts
 var ratingSchema = z2.enum(["STRONG", "MODERATE", "WEAK", "UNKNOWN"]);
 var factorSchema = z2.object({ rating: ratingSchema, reason: z2.string().min(1).max(420) });
-var geminiQualificationSchema = z2.object({
+var groqQualificationSchema = z2.object({
   qualification: z2.enum(["HIGH", "MEDIUM", "LOW"]),
   score: z2.number().min(0).max(100),
   confidence: z2.enum(["HIGH", "MEDIUM", "LOW"]),
@@ -804,22 +804,19 @@ var responseJsonSchema = {
   required: ["qualification", "score", "confidence", "reasoning", "factors", "missing_information", "next_best_action"],
   additionalProperties: false
 };
-var GeminiQualificationError = class extends Error {
+var GroqQualificationError = class extends Error {
   constructor(message, failure = "REQUEST") {
     super(message);
     this.failure = failure;
-    this.name = "GeminiQualificationError";
+    this.name = "GroqQualificationError";
   }
 };
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
-async function analyzeWithGemini(lead, inspection) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new GeminiQualificationError("Gemini credentials are unavailable.", "CREDENTIALS");
-  const prompt = `You are an evidence-led B2B SEO lead analyst. Assess only the supplied lead and homepage inspection. Never invent facts, exchange rates, or client outcomes. Use UNKNOWN for unsupported conclusions. Your factor names and ratings must exactly match the output schema. The server independently calculates the final score from the factor ratings, explicit weights, thresholds and hard disqualifiers.
-
-Qualification framework: service fit 20%, ICP/company fit 15%, budget fit 15%, geographic/market fit 10%, business-objective fit 10%, SEO use-case fit 10%, timeline fit 5%, buying intent 5%, goal clarity 5%, information completeness 5%. HIGH is 75-100, MEDIUM 50-74, LOW 0-49. A request for meaningful SEO results in less than 30 days must be WEAK for timeline. Do not calculate or convert between currencies.
+function buildMessages(lead, inspection) {
+  const system = "You are an evidence-led B2B SEO lead analyst. Assess only the supplied lead and homepage inspection. Never invent facts, exchange rates, or client outcomes. Use UNKNOWN for unsupported conclusions. Your factor names and ratings must exactly match the output schema. The server independently calculates the final score from factor ratings, explicit weights, thresholds, and hard disqualifiers.";
+  const user = `Qualification framework: service fit 20%, ICP/company fit 15%, budget fit 15%, geographic/market fit 10%, business-objective fit 10%, SEO use-case fit 10%, timeline fit 5%, buying intent 5%, goal clarity 5%, information completeness 5%. HIGH is 75-100, MEDIUM 50-74, LOW 0-49. A request for meaningful SEO results in less than 30 days must be WEAK for timeline. Do not calculate or convert between currencies.
 
 Lead input:
 ${JSON.stringify(lead)}
@@ -828,16 +825,27 @@ Homepage inspection status: ${inspection.status}
 Homepage title: ${inspection.title ?? "Unavailable"}
 Homepage meta description: ${inspection.metaDescription ?? "Unavailable"}
 Homepage visible text excerpt: ${inspection.visibleText ?? "Unavailable"}`;
+  return [{ role: "system", content: system }, { role: "user", content: user }];
+}
+async function analyzeWithGroq(lead, inspection) {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new GroqQualificationError("Groq credentials are unavailable.", "CREDENTIALS");
   let response;
   const maximumAttempts = 3;
   for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
     try {
-      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${QUALIFICATION_CONFIG.geminiModel}:generateContent`, {
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.15, responseMimeType: "application/json", responseJsonSchema }
+          model: QUALIFICATION_CONFIG.groqModel,
+          messages: buildMessages(lead, inspection),
+          temperature: 0.15,
+          reasoning_effort: "low",
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "seo_lead_qualification", strict: true, schema: responseJsonSchema }
+          }
         }),
         signal: AbortSignal.timeout(22e3)
       });
@@ -846,7 +854,7 @@ Homepage visible text excerpt: ${inspection.visibleText ?? "Unavailable"}`;
         await delay(400 * (attempt + 1));
         continue;
       }
-      throw new GeminiQualificationError("Gemini request failed.", "REQUEST");
+      throw new GroqQualificationError("Groq request failed.", "REQUEST");
     }
     if (response.ok) break;
     const transient = response.status === 429 || response.status >= 500;
@@ -856,16 +864,18 @@ Homepage visible text excerpt: ${inspection.visibleText ?? "Unavailable"}`;
       await delay(retryDelay);
       continue;
     }
-    throw new GeminiQualificationError(`Gemini returned ${response.status}.`, response.status === 429 ? "RATE_LIMITED" : "RESPONSE");
+    throw new GroqQualificationError(`Groq returned ${response.status}.`, response.status === 429 ? "RATE_LIMITED" : "RESPONSE");
   }
-  if (!response?.ok) throw new GeminiQualificationError("Gemini request failed.", "REQUEST");
+  if (!response?.ok) throw new GroqQualificationError("Groq request failed.", "REQUEST");
   const payload = await response.json();
-  const content = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("");
-  if (!content) throw new GeminiQualificationError("Gemini returned no structured content.", "RESPONSE");
+  const content = payload.choices?.[0]?.message?.content;
+  if (!content) throw new GroqQualificationError("Groq returned no structured content.", "RESPONSE");
   try {
-    return geminiQualificationSchema.parse(JSON.parse(content));
-  } catch {
-    throw new GeminiQualificationError("Gemini returned malformed structured content.", "RESPONSE");
+    return groqQualificationSchema.parse(JSON.parse(content));
+  } catch (error) {
+    const detail = error instanceof z2.ZodError ? error.issues.map((issue) => `${issue.path.join(".") || "root"}: ${issue.message}`).join("; ") : "invalid JSON";
+    console.warn("[SEOSignal] Groq structured output rejected:", detail);
+    throw new GroqQualificationError("Groq returned malformed structured content.", "RESPONSE");
   }
 }
 function ratingToAssessment(rating) {
@@ -955,8 +965,8 @@ function reportFromAnalysis(lead, inspection, analysis) {
   };
 }
 async function qualifyLead(lead, inspection) {
-  const analysis = await analyzeWithGemini(lead, inspection);
-  return { report: reportFromAnalysis(lead, inspection, analysis), model: QUALIFICATION_CONFIG.geminiModel };
+  const analysis = await analyzeWithGroq(lead, inspection);
+  return { report: reportFromAnalysis(lead, inspection, analysis), model: QUALIFICATION_CONFIG.groqModel };
 }
 
 // server/websiteInspection.ts
@@ -1109,9 +1119,9 @@ var appRouter = router({
         await persistQualification({ lead: input, inspection, report: outcome.report, model: outcome.model });
         return outcome.report;
       } catch (error) {
-        if (error instanceof GeminiQualificationError || error instanceof SupabasePersistenceError) {
+        if (error instanceof GroqQualificationError || error instanceof SupabasePersistenceError) {
           console.warn("[SEOSignal] Qualification dependency failed:", error.name);
-          const message = error instanceof GeminiQualificationError && error.failure === "RATE_LIMITED" ? AI_ASSESSMENT_BUSY_MESSAGE : "Unable to complete the qualification right now. Please try again.";
+          const message = error instanceof GroqQualificationError && error.failure === "RATE_LIMITED" ? AI_ASSESSMENT_BUSY_MESSAGE : "Unable to complete the qualification right now. Please try again.";
           throw new TRPCError3({ code: "INTERNAL_SERVER_ERROR", message });
         }
         console.error("[SEOSignal] Unexpected qualification error:", error instanceof Error ? error.name : "unknown");

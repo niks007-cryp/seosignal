@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { analyzeWithGemini } from "./geminiQualification";
+import { analyzeWithGroq } from "./groqQualification";
 
-const runLiveIntegration = process.env.GEMINI_INTEGRATION_TEST === "true";
+const runLiveIntegration = process.env.GROQ_INTEGRATION_TEST === "true";
 
-describe("Gemini structured qualification integration", () => {
+describe("Groq structured qualification integration", () => {
   it.skipIf(!runLiveIntegration)("returns a Zod-validated ten-factor assessment", async () => {
-    const result = await analyzeWithGemini(
+    const result = await analyzeWithGroq(
       {
         company: "Example B2B Platform",
         website: "https://example.com",

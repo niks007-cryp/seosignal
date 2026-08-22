@@ -1,7 +1,7 @@
 import type { CurrencyCode } from "../shared/qualification";
 
 export const QUALIFICATION_CONFIG = {
-  geminiModel: process.env.GEMINI_MODEL ?? "gemini-3.6-flash",
+  groqModel: "openai/gpt-oss-20b",
   supportedServices: ["SEO strategy", "Technical SEO", "Content SEO", "Enterprise SEO", "SEO audit"] as const,
   supportedObjectives: ["Qualified leads", "Organic revenue", "Market visibility", "Technical health"] as const,
   targetCustomerTypes: [

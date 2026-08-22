@@ -128,3 +128,7 @@
 - [x] Deliver an explicit external recovery handoff: retry after the provider quota window resets or configure a Gemini project/key with available request quota.
 - [x] Commit and push the verified Gemini free-tier quota diagnosis and current reliability handling to GitHub, then confirm the automatic Vercel deployment reaches READY.
 - [x] Deliver the deployed URL and exact Gemini free-tier quota recovery condition without claiming that a deployment removes the provider-side daily limit.
+- [x] Configure `GROQ_API_KEY` only through secure project settings, without exposing it in source, logs, commits, or chat; pause with exact UI guidance if a secure input is required.
+- [x] Replace only the Gemini provider boundary with Groq `openai/gpt-oss-20b`, preserving structured output validation, deterministic scoring, Supabase persistence, report rendering, PDF export, and current UI design.
+- [x] Verify locally through lead input → Groq → validated structured output → deterministic scoring → Supabase → report → PDF, then run tests, TypeScript, and production build without deploying to Vercel.
+- [x] Commit the verified provider migration without deploying and report the non-deployment handoff.

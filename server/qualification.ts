@@ -1,5 +1,5 @@
 import { formatBudgetAmount, type LeadInput, type QualificationReport } from "../shared/qualification";
-import { analyzeWithGemini, factorEntries, ratingToAssessment, type GeminiQualification } from "./geminiQualification";
+import { analyzeWithGroq, factorEntries, ratingToAssessment, type GroqQualification } from "./groqQualification";
 import { FACTOR_LABELS, QUALIFICATION_CONFIG, type AiRating } from "./qualification-config";
 import type { WebsiteInspection } from "./websiteInspection";
 
@@ -13,7 +13,7 @@ function disqualifiersFor(lead: LeadInput) {
   return issues;
 }
 
-export function applyConfiguredIcpAssessment(lead: LeadInput, inspection: WebsiteInspection, factors: GeminiQualification["factors"]) {
+export function applyConfiguredIcpAssessment(lead: LeadInput, inspection: WebsiteInspection, factors: GroqQualification["factors"]) {
   const evidence = `${lead.company} ${lead.website} ${inspection.title ?? ""} ${inspection.metaDescription ?? ""} ${inspection.visibleText ?? ""}`.toLowerCase();
   const nonProspectMatch = QUALIFICATION_CONFIG.icpEvidence.nonProspectTerms.find((term) => evidence.includes(term));
   if (nonProspectMatch) {
@@ -38,7 +38,7 @@ export function applyConfiguredIcpAssessment(lead: LeadInput, inspection: Websit
   return factors;
 }
 
-export function calculateQualificationScore(factors: GeminiQualification["factors"], disqualifiers: string[]) {
+export function calculateQualificationScore(factors: GroqQualification["factors"], disqualifiers: string[]) {
   const weighted = factorEntries(factors).reduce((total, [key, factor]) => total + (ratingValue[factor.rating] * QUALIFICATION_CONFIG.weights[key]) / 100, 0);
   const fundamentalIcpMismatch = disqualifiers.includes(QUALIFICATION_CONFIG.hardDisqualifiers.fundamentalIcpMismatch);
   const adjusted = disqualifiers.length || fundamentalIcpMismatch
@@ -51,7 +51,7 @@ export function qualificationFromScore(score: number) {
   return score >= QUALIFICATION_CONFIG.thresholds.high ? "HIGH" : score >= QUALIFICATION_CONFIG.thresholds.medium ? "MEDIUM" : "LOW";
 }
 
-function reportFromAnalysis(lead: LeadInput, inspection: WebsiteInspection, analysis: GeminiQualification): QualificationReport {
+function reportFromAnalysis(lead: LeadInput, inspection: WebsiteInspection, analysis: GroqQualification): QualificationReport {
   const factors = applyConfiguredIcpAssessment(lead, inspection, analysis.factors);
   const disqualifiers = [
     ...disqualifiersFor(lead),
@@ -91,6 +91,6 @@ function reportFromAnalysis(lead: LeadInput, inspection: WebsiteInspection, anal
 }
 
 export async function qualifyLead(lead: LeadInput, inspection: WebsiteInspection) {
-  const analysis = await analyzeWithGemini(lead, inspection);
-  return { report: reportFromAnalysis(lead, inspection, analysis), model: QUALIFICATION_CONFIG.geminiModel };
+  const analysis = await analyzeWithGroq(lead, inspection);
+  return { report: reportFromAnalysis(lead, inspection, analysis), model: QUALIFICATION_CONFIG.groqModel };
 }

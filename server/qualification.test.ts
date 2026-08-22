@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { formatBudgetAmount } from "../shared/qualification";
 import { applyConfiguredIcpAssessment, calculateQualificationScore, qualificationFromScore } from "./qualification";
-import type { GeminiQualification } from "./geminiQualification";
+import type { GroqQualification } from "./groqQualification";
 import { QUALIFICATION_CONFIG } from "./qualification-config";
 
-function factors(overrides: Partial<GeminiQualification["factors"]> = {}): GeminiQualification["factors"] {
+function factors(overrides: Partial<GroqQualification["factors"]> = {}): GroqQualification["factors"] {
   const strong = { rating: "STRONG" as const, reason: "Test evidence" };
   return {
     service_fit: strong,

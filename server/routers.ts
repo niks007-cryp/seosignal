@@ -5,7 +5,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { qualifyLead } from "./qualification";
-import { GeminiQualificationError } from "./geminiQualification";
+import { GroqQualificationError } from "./groqQualification";
 import { inspectHomepage } from "./websiteInspection";
 import { persistQualification, SupabasePersistenceError } from "./supabasePersistence";
 import { AI_ASSESSMENT_BUSY_MESSAGE } from "../shared/qualificationErrors";
@@ -40,9 +40,9 @@ export const appRouter = router({
         await persistQualification({ lead: input, inspection, report: outcome.report, model: outcome.model });
         return outcome.report;
       } catch (error) {
-        if (error instanceof GeminiQualificationError || error instanceof SupabasePersistenceError) {
+        if (error instanceof GroqQualificationError || error instanceof SupabasePersistenceError) {
           console.warn("[SEOSignal] Qualification dependency failed:", error.name);
-          const message = error instanceof GeminiQualificationError && error.failure === "RATE_LIMITED"
+          const message = error instanceof GroqQualificationError && error.failure === "RATE_LIMITED"
             ? AI_ASSESSMENT_BUSY_MESSAGE
             : "Unable to complete the qualification right now. Please try again.";
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });

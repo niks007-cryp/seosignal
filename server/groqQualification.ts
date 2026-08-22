@@ -6,7 +6,7 @@ import type { WebsiteInspection } from "./websiteInspection";
 const ratingSchema = z.enum(["STRONG", "MODERATE", "WEAK", "UNKNOWN"]);
 const factorSchema = z.object({ rating: ratingSchema, reason: z.string().min(1).max(420) });
 
-export const geminiQualificationSchema = z.object({
+export const groqQualificationSchema = z.object({
   qualification: z.enum(["HIGH", "MEDIUM", "LOW"]),
   score: z.number().min(0).max(100),
   confidence: z.enum(["HIGH", "MEDIUM", "LOW"]),
@@ -27,7 +27,7 @@ export const geminiQualificationSchema = z.object({
   next_best_action: z.object({ title: z.string().min(1).max(120), body: z.string().min(1).max(420), steps: z.array(z.string().min(1).max(180)).min(1).max(4) }),
 });
 
-export type GeminiQualification = z.infer<typeof geminiQualificationSchema>;
+export type GroqQualification = z.infer<typeof groqQualificationSchema>;
 
 const responseJsonSchema = {
   type: "object",
@@ -61,12 +61,12 @@ const responseJsonSchema = {
   additionalProperties: false,
 } as const;
 
-export type GeminiQualificationFailure = "CREDENTIALS" | "RATE_LIMITED" | "REQUEST" | "RESPONSE";
+export type GroqQualificationFailure = "CREDENTIALS" | "RATE_LIMITED" | "REQUEST" | "RESPONSE";
 
-export class GeminiQualificationError extends Error {
-  constructor(message: string, public readonly failure: GeminiQualificationFailure = "REQUEST") {
+export class GroqQualificationError extends Error {
+  constructor(message: string, public readonly failure: GroqQualificationFailure = "REQUEST") {
     super(message);
-    this.name = "GeminiQualificationError";
+    this.name = "GroqQualificationError";
   }
 }
 
@@ -74,13 +74,9 @@ function delay(milliseconds: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 }
 
-export async function analyzeWithGemini(lead: LeadInput, inspection: WebsiteInspection): Promise<GeminiQualification> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new GeminiQualificationError("Gemini credentials are unavailable.", "CREDENTIALS");
-
-  const prompt = `You are an evidence-led B2B SEO lead analyst. Assess only the supplied lead and homepage inspection. Never invent facts, exchange rates, or client outcomes. Use UNKNOWN for unsupported conclusions. Your factor names and ratings must exactly match the output schema. The server independently calculates the final score from the factor ratings, explicit weights, thresholds and hard disqualifiers.
-
-Qualification framework: service fit 20%, ICP/company fit 15%, budget fit 15%, geographic/market fit 10%, business-objective fit 10%, SEO use-case fit 10%, timeline fit 5%, buying intent 5%, goal clarity 5%, information completeness 5%. HIGH is 75-100, MEDIUM 50-74, LOW 0-49. A request for meaningful SEO results in less than 30 days must be WEAK for timeline. Do not calculate or convert between currencies.
+function buildMessages(lead: LeadInput, inspection: WebsiteInspection) {
+  const system = "You are an evidence-led B2B SEO lead analyst. Assess only the supplied lead and homepage inspection. Never invent facts, exchange rates, or client outcomes. Use UNKNOWN for unsupported conclusions. Your factor names and ratings must exactly match the output schema. The server independently calculates the final score from factor ratings, explicit weights, thresholds, and hard disqualifiers.";
+  const user = `Qualification framework: service fit 20%, ICP/company fit 15%, budget fit 15%, geographic/market fit 10%, business-objective fit 10%, SEO use-case fit 10%, timeline fit 5%, buying intent 5%, goal clarity 5%, information completeness 5%. HIGH is 75-100, MEDIUM 50-74, LOW 0-49. A request for meaningful SEO results in less than 30 days must be WEAK for timeline. Do not calculate or convert between currencies.
 
 Lead input:
 ${JSON.stringify(lead)}
@@ -89,23 +85,35 @@ Homepage inspection status: ${inspection.status}
 Homepage title: ${inspection.title ?? "Unavailable"}
 Homepage meta description: ${inspection.metaDescription ?? "Unavailable"}
 Homepage visible text excerpt: ${inspection.visibleText ?? "Unavailable"}`;
+  return [{ role: "system", content: system }, { role: "user", content: user }] as const;
+}
+
+export async function analyzeWithGroq(lead: LeadInput, inspection: WebsiteInspection): Promise<GroqQualification> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new GroqQualificationError("Groq credentials are unavailable.", "CREDENTIALS");
 
   let response: Response | undefined;
   const maximumAttempts = 3;
   for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
     try {
-      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${QUALIFICATION_CONFIG.geminiModel}:generateContent`, {
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.15, responseMimeType: "application/json", responseJsonSchema },
+          model: QUALIFICATION_CONFIG.groqModel,
+          messages: buildMessages(lead, inspection),
+          temperature: 0.15,
+          reasoning_effort: "low",
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "seo_lead_qualification", strict: true, schema: responseJsonSchema },
+          },
         }),
         signal: AbortSignal.timeout(22_000),
       });
     } catch {
       if (attempt < maximumAttempts - 1) { await delay(400 * (attempt + 1)); continue; }
-      throw new GeminiQualificationError("Gemini request failed.", "REQUEST");
+      throw new GroqQualificationError("Groq request failed.", "REQUEST");
     }
     if (response.ok) break;
     const transient = response.status === 429 || response.status >= 500;
@@ -117,17 +125,21 @@ Homepage visible text excerpt: ${inspection.visibleText ?? "Unavailable"}`;
       await delay(retryDelay);
       continue;
     }
-    throw new GeminiQualificationError(`Gemini returned ${response.status}.`, response.status === 429 ? "RATE_LIMITED" : "RESPONSE");
+    throw new GroqQualificationError(`Groq returned ${response.status}.`, response.status === 429 ? "RATE_LIMITED" : "RESPONSE");
   }
-  if (!response?.ok) throw new GeminiQualificationError("Gemini request failed.", "REQUEST");
+  if (!response?.ok) throw new GroqQualificationError("Groq request failed.", "REQUEST");
 
-  const payload = await response.json() as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-  const content = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("");
-  if (!content) throw new GeminiQualificationError("Gemini returned no structured content.", "RESPONSE");
+  const payload = await response.json() as { choices?: { message?: { content?: string | null } }[] };
+  const content = payload.choices?.[0]?.message?.content;
+  if (!content) throw new GroqQualificationError("Groq returned no structured content.", "RESPONSE");
   try {
-    return geminiQualificationSchema.parse(JSON.parse(content));
-  } catch {
-    throw new GeminiQualificationError("Gemini returned malformed structured content.", "RESPONSE");
+    return groqQualificationSchema.parse(JSON.parse(content));
+  } catch (error) {
+    const detail = error instanceof z.ZodError
+      ? error.issues.map((issue) => `${issue.path.join(".") || "root"}: ${issue.message}`).join("; ")
+      : "invalid JSON";
+    console.warn("[SEOSignal] Groq structured output rejected:", detail);
+    throw new GroqQualificationError("Groq returned malformed structured content.", "RESPONSE");
   }
 }
 
@@ -135,6 +147,6 @@ export function ratingToAssessment(rating: AiRating) {
   return ({ STRONG: "Strong", MODERATE: "Moderate", WEAK: "Weak", UNKNOWN: "Unknown" } as const)[rating];
 }
 
-export function factorEntries(factors: GeminiQualification["factors"]) {
+export function factorEntries(factors: GroqQualification["factors"]) {
   return Object.entries(factors) as [FactorKey, { rating: AiRating; reason: string }][];
 }
